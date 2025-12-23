@@ -113,7 +113,7 @@ jobs:
       - name: Test
         uses: addnab/docker-run-action@v3
         with:
-          image: "quay.io/pypa/manylinux_2_38_${{ matrix.arch.arch }}:latest"
+          image: "quay.io/pypa/manylinux_${{ matrix.arch.arch }}:latest"
           options: -v ${{ github.workspace }}:/io -w /io
           run: |
             ${{ matrix.python.interpreter }} -m venv venv
