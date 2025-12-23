@@ -5,7 +5,7 @@ import uuid
 
 import pytest
 
-import orjson
+import hyperjson
 
 
 class TestUUID:
@@ -46,24 +46,24 @@ class TestUUID:
         class AUUID(uuid.UUID):
             pass
 
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(AUUID("{12345678-1234-5678-1234-567812345678}"))
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(AUUID("{12345678-1234-5678-1234-567812345678}"))
 
     def test_serializes_withopt(self):
         """
         dumps() accepts deprecated OPT_SERIALIZE_UUID
         """
         assert (
-            orjson.dumps(
+            hyperjson.dumps(
                 uuid.UUID("7202d115-7ff3-4c81-a7c1-2a1f067b1ece"),
-                option=orjson.OPT_SERIALIZE_UUID,
+                option=hyperjson.OPT_SERIALIZE_UUID,
             )
             == b'"7202d115-7ff3-4c81-a7c1-2a1f067b1ece"'
         )
 
     def test_nil_uuid(self):
         assert (
-            orjson.dumps(uuid.UUID("00000000-0000-0000-0000-000000000000"))
+            hyperjson.dumps(uuid.UUID("00000000-0000-0000-0000-000000000000"))
             == b'"00000000-0000-0000-0000-000000000000"'
         )
 
@@ -82,14 +82,14 @@ class TestUUID:
             uuid.UUID(fields=(0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x567812345678)),
             uuid.UUID(int=0x12345678123456781234567812345678),
         ]
-        result = orjson.dumps(uuids)
+        result = hyperjson.dumps(uuids)
         canonical_uuids = [f'"{u!s}"' for u in uuids]
         serialized = ("[{}]".format(",".join(canonical_uuids))).encode("utf8")
         assert result == serialized
 
     def test_serializes_correctly_with_leading_zeroes(self):
         instance = uuid.UUID(int=0x00345678123456781234567812345678)
-        assert orjson.dumps(instance) == (f'"{instance!s}"').encode("utf-8")
+        assert hyperjson.dumps(instance) == (f'"{instance!s}"').encode("utf-8")
 
     def test_all_uuid_creation_functions_create_serializable_uuids(self):
         uuids = (
@@ -99,4 +99,4 @@ class TestUUID:
             uuid.uuid5(uuid.NAMESPACE_DNS, "python.org"),
         )
         for val in uuids:
-            assert orjson.dumps(val) == f'"{val}"'.encode("utf-8")
+            assert hyperjson.dumps(val) == f'"{val}"'.encode("utf-8")

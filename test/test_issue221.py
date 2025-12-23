@@ -3,7 +3,7 @@
 
 import pytest
 
-import orjson
+import hyperjson
 
 
 @pytest.mark.parametrize(
@@ -14,5 +14,5 @@ import orjson
     ],
 )
 def test_invalid(val):
-    with pytest.raises(orjson.JSONDecodeError):
-        orjson.loads(val)
+    with pytest.raises(hyperjson.JSONDecodeError):
+        hyperjson.loads(val)

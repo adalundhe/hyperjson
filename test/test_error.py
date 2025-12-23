@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_str
 
@@ -37,7 +37,7 @@ class TestJsonDecodeError:
             json.loads(data)
 
         with pytest.raises(json.decoder.JSONDecodeError) as orjson_exc_info:
-            orjson.loads(data)
+            hyperjson.loads(data)
 
         assert (
             self._get_error_infos(json_exc_info)
@@ -46,8 +46,8 @@ class TestJsonDecodeError:
         )
 
     def test_empty(self):
-        with pytest.raises(orjson.JSONDecodeError) as json_exc_info:
-            orjson.loads("")
+        with pytest.raises(hyperjson.JSONDecodeError) as json_exc_info:
+            hyperjson.loads("")
         assert str(json_exc_info.value).startswith(
             "Input is a zero-length, empty document:",
         )
@@ -95,7 +95,7 @@ class TestJsonDecodeError:
         }
 
         with pytest.raises(json.decoder.JSONDecodeError) as json_exc_info:
-            orjson.loads(data)
+            hyperjson.loads(data)
 
         assert self._get_error_infos(json_exc_info) == {
             "pos": 6,
@@ -139,9 +139,9 @@ def default_customerror(obj):
 
 class TestJsonEncodeError:
     def test_dumps_arg(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps()  # type: ignore
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps()  # type: ignore
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert (
             str(exc_info.value)
             == "dumps() missing 1 required positional argument: 'obj'"
@@ -149,44 +149,44 @@ class TestJsonEncodeError:
         assert exc_info.value.__cause__ is None
 
     def test_dumps_chain_none(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(Custom())
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(Custom())
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert str(exc_info.value) == "Type is not JSON serializable: Custom"
         assert exc_info.value.__cause__ is None
 
     def test_dumps_chain_u64(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps([18446744073709551615, Custom()])
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps([18446744073709551615, Custom()])
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert exc_info.value.__cause__ is None
 
     def test_dumps_chain_default_typeerror(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(Custom(), default=default_typeerror)
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(Custom(), default=default_typeerror)
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert isinstance(exc_info.value.__cause__, TypeError)
 
     def test_dumps_chain_default_systemerror(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(Custom(), default=default_systemerror)
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(Custom(), default=default_systemerror)
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert isinstance(exc_info.value.__cause__, SystemError)
 
     def test_dumps_chain_default_importerror(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(Custom(), default=default_importerror)
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(Custom(), default=default_importerror)
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert isinstance(exc_info.value.__cause__, ImportError)
 
     def test_dumps_chain_default_customerror(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(Custom(), default=default_customerror)
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(Custom(), default=default_customerror)
+        assert exc_info.type == hyperjson.JSONEncodeError
         assert isinstance(exc_info.value.__cause__, CustomException)
         assert str(exc_info.value.__cause__) == CUSTOM_ERROR_MESSAGE
 
     def test_dumps_normalize_exception(self):
-        with pytest.raises(orjson.JSONEncodeError) as exc_info:
-            orjson.dumps(10**60)
-        assert exc_info.type == orjson.JSONEncodeError
+        with pytest.raises(hyperjson.JSONEncodeError) as exc_info:
+            hyperjson.dumps(10**60)
+        assert exc_info.type == hyperjson.JSONEncodeError

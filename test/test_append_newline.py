@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 # Copyright ijl (2020-2025)
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_obj
 
@@ -11,7 +11,7 @@ class TestAppendNewline:
         """
         dumps() OPT_APPEND_NEWLINE
         """
-        assert orjson.dumps([], option=orjson.OPT_APPEND_NEWLINE) == b"[]\n"
+        assert hyperjson.dumps([], option=hyperjson.OPT_APPEND_NEWLINE) == b"[]\n"
 
     @needs_data
     def test_twitter_newline(self):
@@ -19,7 +19,7 @@ class TestAppendNewline:
         loads(),dumps() twitter.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("twitter.json.xz")
-        assert orjson.loads(orjson.dumps(val, option=orjson.OPT_APPEND_NEWLINE)) == val
+        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
 
     @needs_data
     def test_canada(self):
@@ -27,7 +27,7 @@ class TestAppendNewline:
         loads(), dumps() canada.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("canada.json.xz")
-        assert orjson.loads(orjson.dumps(val, option=orjson.OPT_APPEND_NEWLINE)) == val
+        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
 
     @needs_data
     def test_citm_catalog_newline(self):
@@ -35,7 +35,7 @@ class TestAppendNewline:
         loads(), dumps() citm_catalog.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("citm_catalog.json.xz")
-        assert orjson.loads(orjson.dumps(val, option=orjson.OPT_APPEND_NEWLINE)) == val
+        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
 
     @needs_data
     def test_github_newline(self):
@@ -43,4 +43,4 @@ class TestAppendNewline:
         loads(), dumps() github.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("github.json.xz")
-        assert orjson.loads(orjson.dumps(val, option=orjson.OPT_APPEND_NEWLINE)) == val
+        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 # Copyright ijl (2018-2025)
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_str
 
@@ -10,7 +10,7 @@ from .util import needs_data, read_fixture_str
 class TestJsonChecker:
     def _run_roundtrip_json(self, filename):
         data = read_fixture_str(filename, "roundtrip")
-        assert orjson.dumps(orjson.loads(data)) == data.encode("utf-8")
+        assert hyperjson.dumps(hyperjson.loads(data)) == data.encode("utf-8")
 
     def test_roundtrip001(self):
         """

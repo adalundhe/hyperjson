@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 # Copyright ijl (2020-2025)
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_obj
 
@@ -15,8 +15,8 @@ class TestDictSortKeys:
         """
         obj = read_fixture_obj("twitter.json.xz")
         assert list(obj.keys()) != sorted(list(obj.keys()))
-        serialized = orjson.dumps(obj, option=orjson.OPT_SORT_KEYS)
-        val = orjson.loads(serialized)
+        serialized = hyperjson.dumps(obj, option=hyperjson.OPT_SORT_KEYS)
+        val = hyperjson.loads(serialized)
         assert list(val.keys()) == sorted(list(val.keys()))
 
     def test_canada_sorted(self):
@@ -25,8 +25,8 @@ class TestDictSortKeys:
         """
         obj = read_fixture_obj("canada.json.xz")
         assert list(obj.keys()) != sorted(list(obj.keys()))
-        serialized = orjson.dumps(obj, option=orjson.OPT_SORT_KEYS)
-        val = orjson.loads(serialized)
+        serialized = hyperjson.dumps(obj, option=hyperjson.OPT_SORT_KEYS)
+        val = hyperjson.loads(serialized)
         assert list(val.keys()) == sorted(list(val.keys()))
 
     def test_github_sorted(self):
@@ -36,8 +36,8 @@ class TestDictSortKeys:
         obj = read_fixture_obj("github.json.xz")
         for each in obj:
             assert list(each.keys()) != sorted(list(each.keys()))
-        serialized = orjson.dumps(obj, option=orjson.OPT_SORT_KEYS)
-        val = orjson.loads(serialized)
+        serialized = hyperjson.dumps(obj, option=hyperjson.OPT_SORT_KEYS)
+        val = hyperjson.loads(serialized)
         for each in val:
             assert list(each.keys()) == sorted(list(each.keys()))
 
@@ -47,6 +47,6 @@ class TestDictSortKeys:
         """
         obj = {"a": 1, "ä": 2, "A": 3}
         assert list(obj.keys()) != sorted(list(obj.keys()))
-        serialized = orjson.dumps(obj, option=orjson.OPT_SORT_KEYS)
-        val = orjson.loads(serialized)
+        serialized = hyperjson.dumps(obj, option=hyperjson.OPT_SORT_KEYS)
+        val = hyperjson.loads(serialized)
         assert list(val.keys()) == sorted(list(val.keys()))

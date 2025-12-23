@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 # Copyright ijl (2019-2022)
 
-import orjson
+import hyperjson
 
 try:
     from typing import TypedDict  # type: ignore
@@ -20,4 +20,4 @@ class TestTypedDict:
             b: int
 
         obj = TypedDict1(a="a", b=1)
-        assert orjson.dumps(obj) == b'{"a":"a","b":1}'
+        assert hyperjson.dumps(obj) == b'{"a":"a","b":1}'

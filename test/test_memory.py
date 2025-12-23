@@ -20,7 +20,7 @@ except ImportError:
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import IS_FREETHREADING
 
@@ -74,11 +74,11 @@ class TestMemory:
         """
         proc = psutil.Process()
         gc.collect()
-        val = orjson.loads(FIXTURE)
+        val = hyperjson.loads(FIXTURE)
         assert val
         mem = proc.memory_info().rss
         for _ in range(10000):
-            val = orjson.loads(FIXTURE)
+            val = hyperjson.loads(FIXTURE)
             assert val
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -91,11 +91,11 @@ class TestMemory:
         proc = psutil.Process()
         gc.collect()
         fixture = FIXTURE.encode("utf-8")
-        val = orjson.loads(fixture)
+        val = hyperjson.loads(fixture)
         assert val
         mem = proc.memory_info().rss
         for _ in range(10000):
-            val = orjson.loads(memoryview(fixture))
+            val = hyperjson.loads(memoryview(fixture))
             assert val
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -107,12 +107,12 @@ class TestMemory:
         """
         proc = psutil.Process()
         gc.collect()
-        fixture = orjson.loads(FIXTURE)
-        val = orjson.dumps(fixture)
+        fixture = hyperjson.loads(FIXTURE)
+        val = hyperjson.dumps(fixture)
         assert val
         mem = proc.memory_info().rss
         for _ in range(10000):
-            val = orjson.dumps(fixture)
+            val = hyperjson.dumps(fixture)
             assert val
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -130,8 +130,8 @@ class TestMemory:
         i = 0
         for _ in range(n):
             try:
-                orjson.loads("")
-            except orjson.JSONDecodeError:
+                hyperjson.loads("")
+            except hyperjson.JSONDecodeError:
                 i += 1
         assert n == i
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -150,8 +150,8 @@ class TestMemory:
         i = 0
         for _ in range(n):
             try:
-                orjson.dumps(data)
-            except orjson.JSONEncodeError:
+                hyperjson.dumps(data)
+            except hyperjson.JSONEncodeError:
                 i += 1
         assert n == i
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -164,7 +164,7 @@ class TestMemory:
         """
         proc = psutil.Process()
         gc.collect()
-        fixture = orjson.loads(FIXTURE)
+        fixture = hyperjson.loads(FIXTURE)
 
         class Custom:
             def __init__(self, name):
@@ -174,10 +174,10 @@ class TestMemory:
                 return f"{self.__class__.__name__}({self.name})"
 
         fixture["custom"] = Custom("orjson")
-        val = orjson.dumps(fixture, default=default)
+        val = hyperjson.dumps(fixture, default=default)
         mem = proc.memory_info().rss
         for _ in range(10000):
-            val = orjson.dumps(fixture, default=default)
+            val = hyperjson.dumps(fixture, default=default)
             assert val
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -189,11 +189,11 @@ class TestMemory:
         """
         proc = psutil.Process()
         gc.collect()
-        val = orjson.dumps(DATACLASS_FIXTURE)
+        val = hyperjson.dumps(DATACLASS_FIXTURE)
         assert val
         mem = proc.memory_info().rss
         for _ in range(100):
-            val = orjson.dumps(DATACLASS_FIXTURE)
+            val = hyperjson.dumps(DATACLASS_FIXTURE)
             assert val
         assert val
         gc.collect()
@@ -210,11 +210,11 @@ class TestMemory:
         proc = psutil.Process()
         gc.collect()
         dt = datetime.datetime.now()
-        val = orjson.dumps(pytz.UTC.localize(dt))
+        val = hyperjson.dumps(pytz.UTC.localize(dt))
         assert val
         mem = proc.memory_info().rss
         for _ in range(50000):
-            val = orjson.dumps(pytz.UTC.localize(dt))
+            val = hyperjson.dumps(pytz.UTC.localize(dt))
             assert val
         assert val
         gc.collect()
@@ -229,12 +229,12 @@ class TestMemory:
         gc.collect()
         fixture = {f"key_{idx}": "value" for idx in range(1024)}
         assert len(fixture) == 1024
-        val = orjson.dumps(fixture)
-        loaded = orjson.loads(val)
+        val = hyperjson.dumps(fixture)
+        loaded = hyperjson.loads(val)
         assert loaded
         mem = proc.memory_info().rss
         for _ in range(100):
-            loaded = orjson.loads(val)
+            loaded = hyperjson.loads(val)
             assert loaded
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -248,11 +248,11 @@ class TestMemory:
         proc = psutil.Process()
         gc.collect()
         fixture = numpy.random.rand(4, 4, 4)  # type: ignore
-        val = orjson.dumps(fixture, option=orjson.OPT_SERIALIZE_NUMPY)
+        val = hyperjson.dumps(fixture, option=hyperjson.OPT_SERIALIZE_NUMPY)
         assert val
         mem = proc.memory_info().rss
         for _ in range(100):
-            val = orjson.dumps(fixture, option=orjson.OPT_SERIALIZE_NUMPY)
+            val = hyperjson.dumps(fixture, option=hyperjson.OPT_SERIALIZE_NUMPY)
             assert val
         assert val
         gc.collect()
@@ -268,11 +268,11 @@ class TestMemory:
         gc.collect()
         numpy.random.rand(4, 4, 4)  # type: ignore
         df = pandas.Series(numpy.random.rand(4, 4, 4).tolist())  # type: ignore
-        val = df.map(orjson.dumps)
+        val = df.map(hyperjson.dumps)
         assert not val.empty
         mem = proc.memory_info().rss
         for _ in range(100):
-            val = df.map(orjson.dumps)
+            val = df.map(hyperjson.dumps)
             assert not val.empty
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE
@@ -284,9 +284,9 @@ class TestMemory:
         """
         proc = psutil.Process()
         gc.collect()
-        orjson.dumps(orjson.Fragment(str(0)))
+        hyperjson.dumps(hyperjson.Fragment(str(0)))
         mem = proc.memory_info().rss
         for i in range(10000):
-            orjson.dumps(orjson.Fragment(str(i)))
+            hyperjson.dumps(hyperjson.Fragment(str(i)))
         gc.collect()
         assert proc.memory_info().rss <= mem + MAX_INCREASE

@@ -6,7 +6,7 @@ Tests files from http://json.org/JSON_checker/
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_str
 
@@ -15,13 +15,13 @@ PATTERN_1 = '["JSON Test Pattern pass1",{"object with 1 member":["array with 1 e
 
 @needs_data
 class TestJsonChecker:
-    def _run_fail_json(self, filename, exc=orjson.JSONDecodeError):
+    def _run_fail_json(self, filename, exc=hyperjson.JSONDecodeError):
         data = read_fixture_str(filename, "jsonchecker")
-        pytest.raises(exc, orjson.loads, data)
+        pytest.raises(exc, hyperjson.loads, data)
 
     def _run_pass_json(self, filename, match=""):
         data = read_fixture_str(filename, "jsonchecker")
-        assert orjson.dumps(orjson.loads(data)) == match
+        assert hyperjson.dumps(hyperjson.loads(data)) == match
 
     def test_fail01(self):
         """
@@ -36,7 +36,7 @@ class TestJsonChecker:
         """
         fail02.json
         """
-        self._run_fail_json("fail02.json", orjson.JSONDecodeError)  # EOF
+        self._run_fail_json("fail02.json", hyperjson.JSONDecodeError)  # EOF
 
     def test_fail03(self):
         """
@@ -219,7 +219,7 @@ class TestJsonChecker:
         """
         fail32.json
         """
-        self._run_fail_json("fail32.json", orjson.JSONDecodeError)  # EOF
+        self._run_fail_json("fail32.json", hyperjson.JSONDecodeError)  # EOF
 
     def test_fail33(self):
         """

@@ -7,7 +7,7 @@ import uuid
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import SUPPORTS_GETREFCOUNT, numpy
 
@@ -41,14 +41,14 @@ class TestType:
         """
         dumps() default not callable
         """
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(Custom(), default=NotImplementedError)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(Custom(), default=NotImplementedError)
 
         ran = False
         try:
-            orjson.dumps(Custom(), default=NotImplementedError)
+            hyperjson.dumps(Custom(), default=NotImplementedError)
         except Exception as err:
-            assert isinstance(err, orjson.JSONEncodeError)
+            assert isinstance(err, hyperjson.JSONEncodeError)
             assert str(err) == "default serializer exceeds recursion limit"
             ran = True
         assert ran
@@ -62,13 +62,13 @@ class TestType:
         def default(obj):
             return str(obj)
 
-        assert orjson.dumps(ref, default=default) == b'"%s"' % str(ref).encode("utf-8")
+        assert hyperjson.dumps(ref, default=default) == b'"%s"' % str(ref).encode("utf-8")
 
     def test_default_func_none(self):
         """
         dumps() default function None ok
         """
-        assert orjson.dumps(Custom(), default=lambda x: None) == b"null"
+        assert hyperjson.dumps(Custom(), default=lambda x: None) == b"null"
 
     def test_default_func_empty(self):
         """
@@ -80,8 +80,8 @@ class TestType:
             if isinstance(obj, set):
                 return list(obj)
 
-        assert orjson.dumps(ref, default=default) == b"null"
-        assert orjson.dumps({ref}, default=default) == b"[null]"
+        assert hyperjson.dumps(ref, default=default) == b"null"
+        assert hyperjson.dumps({ref}, default=default) == b"[null]"
 
     def test_default_func_exc(self):
         """
@@ -91,26 +91,26 @@ class TestType:
         def default(obj):
             raise NotImplementedError
 
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(Custom(), default=default)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(Custom(), default=default)
 
         ran = False
         try:
-            orjson.dumps(Custom(), default=default)
+            hyperjson.dumps(Custom(), default=default)
         except Exception as err:
-            assert isinstance(err, orjson.JSONEncodeError)
+            assert isinstance(err, hyperjson.JSONEncodeError)
             assert str(err) == "Type is not JSON serializable: Custom"
             ran = True
         assert ran
 
     def test_default_exception_type(self):
         """
-        dumps() TypeError in default() raises orjson.JSONEncodeError
+        dumps() TypeError in default() raises hyperjson.JSONEncodeError
         """
         ref = Custom()
 
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(ref, default=default_raises)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(ref, default=default_raises)
 
     def test_default_vectorcall_str(self):
         """
@@ -123,7 +123,7 @@ class TestType:
         obj = SubStr("saasa")
         ref = b'"%s"' % str(obj).encode("utf-8")
         assert (
-            orjson.dumps(obj, option=orjson.OPT_PASSTHROUGH_SUBCLASS, default=str)
+            hyperjson.dumps(obj, option=hyperjson.OPT_PASSTHROUGH_SUBCLASS, default=str)
             == ref
         )
 
@@ -133,7 +133,7 @@ class TestType:
         """
         obj = {1, 2}
         ref = b"[1,2]"
-        assert orjson.dumps(obj, default=list) == ref
+        assert hyperjson.dumps(obj, default=list) == ref
 
     def test_default_func_nested_str(self):
         """
@@ -144,7 +144,7 @@ class TestType:
         def default(obj):
             return str(obj)
 
-        assert orjson.dumps({"a": ref}, default=default) == b'{"a":"%s"}' % str(
+        assert hyperjson.dumps({"a": ref}, default=default) == b'{"a":"%s"}' % str(
             ref,
         ).encode("utf-8")
 
@@ -158,7 +158,7 @@ class TestType:
             if isinstance(obj, Custom):
                 return [str(obj)]
 
-        assert orjson.dumps({"a": ref}, default=default) == b'{"a":["%s"]}' % str(
+        assert hyperjson.dumps({"a": ref}, default=default) == b'{"a":["%s"]}' % str(
             ref,
         ).encode("utf-8")
 
@@ -171,7 +171,7 @@ class TestType:
         def default(obj):
             return str(obj)
 
-        assert orjson.dumps([ref] * 100, default=default) == b"[%s]" % b",".join(
+        assert hyperjson.dumps([ref] * 100, default=default) == b"[%s]" % b",".join(
             b'"%s"' % str(ref).encode("utf-8") for _ in range(100)
         )
 
@@ -184,14 +184,14 @@ class TestType:
         def default(obj):
             return bytes(obj)
 
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(ref, default=default)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(ref, default=default)
 
         ran = False
         try:
-            orjson.dumps(ref, default=default)
+            hyperjson.dumps(ref, default=default)
         except Exception as err:
-            assert isinstance(err, orjson.JSONEncodeError)
+            assert isinstance(err, hyperjson.JSONEncodeError)
             assert str(err) == "Type is not JSON serializable: Custom"
             ran = True
         assert ran
@@ -205,15 +205,15 @@ class TestType:
         def default(obj):
             return "\ud800"
 
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(ref, default=default)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(ref, default=default)
 
     def test_default_lambda_ok(self):
         """
         dumps() default lambda
         """
         ref = Custom()
-        assert orjson.dumps(ref, default=lambda x: str(x)) == b'"%s"' % str(ref).encode(
+        assert hyperjson.dumps(ref, default=lambda x: str(x)) == b'"%s"' % str(ref).encode(
             "utf-8",
         )
 
@@ -234,20 +234,20 @@ class TestType:
         ref_obj = Custom()
         ref_bytes = b'"%s"' % str(ref_obj).encode("utf-8")
         for obj in [ref_obj] * 100:
-            assert orjson.dumps(obj, default=CustomSerializer()) == ref_bytes
+            assert hyperjson.dumps(obj, default=CustomSerializer()) == ref_bytes
 
     def test_default_recursion(self):
         """
         dumps() default recursion limit
         """
-        assert orjson.dumps(Recursive(254), default=default_recursive) == b"0"
+        assert hyperjson.dumps(Recursive(254), default=default_recursive) == b"0"
 
     def test_default_recursion_reset(self):
         """
         dumps() default recursion limit reset
         """
         assert (
-            orjson.dumps(
+            hyperjson.dumps(
                 [Recursive(254), {"a": "b"}, Recursive(254), Recursive(254)],
                 default=default_recursive,
             )
@@ -265,8 +265,8 @@ class TestType:
 
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(ref, default=default)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(ref, default=default)
         if SUPPORTS_GETREFCOUNT:
             assert sys.getrefcount(ref) == refcount
 
@@ -280,7 +280,7 @@ class TestType:
 
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        orjson.dumps(ref, default=default)
+        hyperjson.dumps(ref, default=default)
         if SUPPORTS_GETREFCOUNT:
             assert sys.getrefcount(ref) == refcount
 
@@ -295,8 +295,8 @@ class TestType:
 
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(ref, default=default)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(ref, default=default)
         if SUPPORTS_GETREFCOUNT:
             assert sys.getrefcount(ref) == refcount
 
@@ -310,7 +310,7 @@ class TestType:
 
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        orjson.dumps(ref, option=orjson.OPT_PASSTHROUGH_DATETIME, default=default)
+        hyperjson.dumps(ref, option=hyperjson.OPT_PASSTHROUGH_DATETIME, default=default)
         if SUPPORTS_GETREFCOUNT:
             assert sys.getrefcount(ref) == refcount
 
@@ -319,9 +319,9 @@ class TestType:
 
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        orjson.dumps(
+        hyperjson.dumps(
             ref,
-            option=orjson.OPT_PASSTHROUGH_DATETIME,
+            option=hyperjson.OPT_PASSTHROUGH_DATETIME,
             default=lambda val: str(val),
         )
         if SUPPORTS_GETREFCOUNT:
@@ -332,9 +332,9 @@ class TestType:
         ref = numpy.array([""] * 100)  # type: ignore
         if SUPPORTS_GETREFCOUNT:
             refcount = sys.getrefcount(ref)
-        orjson.dumps(
+        hyperjson.dumps(
             ref,
-            option=orjson.OPT_SERIALIZE_NUMPY,
+            option=hyperjson.OPT_SERIALIZE_NUMPY,
             default=lambda val: val.tolist(),
         )
         if SUPPORTS_GETREFCOUNT:
@@ -350,4 +350,4 @@ class TestType:
                 return list(obj)
             raise TypeError
 
-        assert orjson.dumps({1, 2}, default=default) == b"[1,2]"
+        assert hyperjson.dumps({1, 2}, default=default) == b"[1,2]"

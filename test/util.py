@@ -30,7 +30,7 @@ if not IS_FREETHREADING:
 
 import pytest
 
-import orjson
+import hyperjson
 
 data_dir = os.path.join(os.path.dirname(__file__), "../data")
 
@@ -59,7 +59,7 @@ def read_fixture_str(filename, subdir=None):
 
 def read_fixture_obj(filename):
     if filename not in OBJ_CACHE:
-        OBJ_CACHE[filename] = orjson.loads(read_fixture_str(filename))
+        OBJ_CACHE[filename] = hyperjson.loads(read_fixture_str(filename))
     return OBJ_CACHE[filename]
 
 

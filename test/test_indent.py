@@ -4,7 +4,7 @@
 import datetime
 import json
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_obj
 
@@ -16,7 +16,7 @@ class TestIndentedOutput:
         OPT_INDENT_2 is equivalent to indent=2
         """
         obj = {"a": "b", "c": {"d": True}, "e": [1, 2]}
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == json.dumps(
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == json.dumps(
             obj,
             indent=2,
         ).encode("utf-8")
@@ -24,14 +24,14 @@ class TestIndentedOutput:
     def test_sort(self):
         obj = {"b": 1, "a": 2}
         assert (
-            orjson.dumps(obj, option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS)
+            hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_SORT_KEYS)
             == b'{\n  "a": 2,\n  "b": 1\n}'
         )
 
     def test_non_str(self):
         obj = {1: 1, "a": 2}
         assert (
-            orjson.dumps(obj, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_NON_STR_KEYS)
             == b'{\n  "1": 1,\n  "a": 2\n}'
         )
 
@@ -42,12 +42,12 @@ class TestIndentedOutput:
             "a": datetime.datetime(1970, 1, 1),
         }
         assert (
-            orjson.dumps(
+            hyperjson.dumps(
                 obj,
-                option=orjson.OPT_INDENT_2
-                | orjson.OPT_SORT_KEYS
-                | orjson.OPT_NON_STR_KEYS
-                | orjson.OPT_NAIVE_UTC,
+                option=hyperjson.OPT_INDENT_2
+                | hyperjson.OPT_SORT_KEYS
+                | hyperjson.OPT_NON_STR_KEYS
+                | hyperjson.OPT_NAIVE_UTC,
             )
             == b'{\n  "1": 1,\n  "a": "1970-01-01T00:00:00+00:00",\n  "b": true\n}'
         )
@@ -55,18 +55,18 @@ class TestIndentedOutput:
     def test_empty(self):
         obj = [{}, [[[]]], {"key": []}]
         ref = b'[\n  {},\n  [\n    [\n      []\n    ]\n  ],\n  {\n    "key": []\n  }\n]'
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == ref
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == ref
 
     def test_list_max(self):
         fixture = b"".join(
             (b"".join(b"[" for _ in range(254)), b"".join(b"]" for _ in range(254))),
         )
-        obj = orjson.loads(fixture)
-        serialized = orjson.dumps(
+        obj = hyperjson.loads(fixture)
+        serialized = hyperjson.dumps(
             obj,
-            option=orjson.OPT_INDENT_2,
+            option=hyperjson.OPT_INDENT_2,
         )
-        assert orjson.loads(serialized) == obj
+        assert hyperjson.loads(serialized) == obj
 
     def test_dict_max(self):
         fixture = {"key": None}
@@ -75,18 +75,18 @@ class TestIndentedOutput:
             target["key"] = {"key": None}  # type:ignore
             target = target["key"]  # type: ignore
 
-        serialized = orjson.dumps(
+        serialized = hyperjson.dumps(
             fixture,
-            option=orjson.OPT_INDENT_2,
+            option=hyperjson.OPT_INDENT_2,
         )
-        assert orjson.loads(serialized) == fixture
+        assert hyperjson.loads(serialized) == fixture
 
     def test_twitter_pretty(self):
         """
         twitter.json pretty
         """
         obj = read_fixture_obj("twitter.json.xz")
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == json.dumps(
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == json.dumps(
             obj,
             indent=2,
             ensure_ascii=False,
@@ -97,7 +97,7 @@ class TestIndentedOutput:
         github.json pretty
         """
         obj = read_fixture_obj("github.json.xz")
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == json.dumps(
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == json.dumps(
             obj,
             indent=2,
             ensure_ascii=False,
@@ -108,7 +108,7 @@ class TestIndentedOutput:
         canada.json pretty
         """
         obj = read_fixture_obj("canada.json.xz")
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == json.dumps(
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == json.dumps(
             obj,
             indent=2,
             ensure_ascii=False,
@@ -119,7 +119,7 @@ class TestIndentedOutput:
         citm_catalog.json pretty
         """
         obj = read_fixture_obj("citm_catalog.json.xz")
-        assert orjson.dumps(obj, option=orjson.OPT_INDENT_2) == json.dumps(
+        assert hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2) == json.dumps(
             obj,
             indent=2,
             ensure_ascii=False,

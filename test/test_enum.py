@@ -6,7 +6,7 @@ import enum
 
 import pytest
 
-import orjson
+import hyperjson
 
 
 class StrEnum(str, enum.Enum):
@@ -70,40 +70,40 @@ class TestEnum:
                 B = "b"
 
     def test_arbitrary_enum(self):
-        assert orjson.dumps(UnspecifiedEnum.A) == b'"a"'
-        assert orjson.dumps(UnspecifiedEnum.B) == b"1"
-        assert orjson.dumps(UnspecifiedEnum.C) == b"1.1"
-        assert orjson.dumps(UnspecifiedEnum.D) == b'{"d":1}'
+        assert hyperjson.dumps(UnspecifiedEnum.A) == b'"a"'
+        assert hyperjson.dumps(UnspecifiedEnum.B) == b"1"
+        assert hyperjson.dumps(UnspecifiedEnum.C) == b"1.1"
+        assert hyperjson.dumps(UnspecifiedEnum.D) == b'{"d":1}'
 
     def test_custom_enum(self):
-        assert orjson.dumps(UnspecifiedEnum.E, default=default) == b'"c"'
+        assert hyperjson.dumps(UnspecifiedEnum.E, default=default) == b'"c"'
 
     def test_enum_options(self):
         assert (
-            orjson.dumps(UnspecifiedEnum.F, option=orjson.OPT_NAIVE_UTC)
+            hyperjson.dumps(UnspecifiedEnum.F, option=hyperjson.OPT_NAIVE_UTC)
             == b'"1970-01-01T00:00:00+00:00"'
         )
 
     def test_int_enum(self):
-        assert orjson.dumps(IntEnum.ONE) == b"1"
+        assert hyperjson.dumps(IntEnum.ONE) == b"1"
 
     def test_intenum_enum(self):
-        assert orjson.dumps(IntEnumEnum.ONE) == b"1"
+        assert hyperjson.dumps(IntEnumEnum.ONE) == b"1"
 
     def test_intflag_enum(self):
-        assert orjson.dumps(IntFlagEnum.ONE) == b"1"
+        assert hyperjson.dumps(IntFlagEnum.ONE) == b"1"
 
     def test_flag_enum(self):
-        assert orjson.dumps(FlagEnum.ONE) == b"1"
+        assert hyperjson.dumps(FlagEnum.ONE) == b"1"
 
     def test_auto_enum(self):
-        assert orjson.dumps(AutoEnum.A) == b'"a"'
+        assert hyperjson.dumps(AutoEnum.A) == b'"a"'
 
     def test_float_enum(self):
-        assert orjson.dumps(FloatEnum.ONE) == b"1.1"
+        assert hyperjson.dumps(FloatEnum.ONE) == b"1.1"
 
     def test_str_enum(self):
-        assert orjson.dumps(StrEnum.AAA) == b'"aaa"'
+        assert hyperjson.dumps(StrEnum.AAA) == b'"aaa"'
 
     def test_bool_enum(self):
         with pytest.raises(TypeError):
@@ -113,9 +113,9 @@ class TestEnum:
 
     def test_non_str_keys_enum(self):
         assert (
-            orjson.dumps({StrEnum.AAA: 1}, option=orjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps({StrEnum.AAA: 1}, option=hyperjson.OPT_NON_STR_KEYS)
             == b'{"aaa":1}'
         )
         assert (
-            orjson.dumps({IntEnum.ONE: 1}, option=orjson.OPT_NON_STR_KEYS) == b'{"1":1}'
+            hyperjson.dumps({IntEnum.ONE: 1}, option=hyperjson.OPT_NON_STR_KEYS) == b'{"1":1}'
         )

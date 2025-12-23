@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-import orjson
+import hyperjson
 
 ORJSON_RUNNER_MEMORY_GIB = os.getenv("ORJSON_RUNNER_MEMORY_GIB", "")
 
@@ -23,8 +23,8 @@ def test_memory_loads():
         // len(segment)
     )
     doc = "".join(segment for _ in range(size))
-    with pytest.raises(orjson.JSONDecodeError) as exc_info:
-        _ = orjson.loads(doc)
+    with pytest.raises(hyperjson.JSONDecodeError) as exc_info:
+        _ = hyperjson.loads(doc)
     assert (
         str(exc_info.value)
         == "Not enough memory to allocate buffer for parsing: line 1 column 1 (char 0)"

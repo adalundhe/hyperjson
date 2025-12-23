@@ -3,7 +3,7 @@
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import needs_data, read_fixture_bytes
 
@@ -16,12 +16,12 @@ def _read_file(filename):
 class TestJSONTestSuiteTransform:
     def _pass_transform(self, filename, reference=None):
         data = _read_file(filename)
-        assert orjson.dumps(orjson.loads(data)) == (reference or data)
+        assert hyperjson.dumps(hyperjson.loads(data)) == (reference or data)
 
     def _fail_transform(self, filename):
         data = _read_file(filename)
-        with pytest.raises(orjson.JSONDecodeError):
-            orjson.loads(data)
+        with pytest.raises(hyperjson.JSONDecodeError):
+            hyperjson.loads(data)
 
     def test_number_1(self):
         """
@@ -46,7 +46,7 @@ class TestJSONTestSuiteTransform:
         number_10000000000000000999.json
         """
         # cannot serialize due to range
-        assert orjson.loads(_read_file("number_10000000000000000999.json")) == [
+        assert hyperjson.loads(_read_file("number_10000000000000000999.json")) == [
             10000000000000000999,
         ]
 

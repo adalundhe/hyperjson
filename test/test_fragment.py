@@ -3,7 +3,7 @@
 
 import pytest
 
-import orjson
+import hyperjson
 
 try:
     import pandas as pd
@@ -15,70 +15,70 @@ from .util import needs_data, read_fixture_bytes
 
 class TestFragment:
     def test_fragment_fragment_eq(self):
-        assert orjson.Fragment(b"{}") != orjson.Fragment(b"{}")
+        assert hyperjson.Fragment(b"{}") != hyperjson.Fragment(b"{}")
 
     def test_fragment_fragment_not_mut(self):
-        fragment = orjson.Fragment(b"{}")
+        fragment = hyperjson.Fragment(b"{}")
         with pytest.raises(AttributeError):
             fragment.contents = b"[]"
-        assert orjson.dumps(fragment) == b"{}"
+        assert hyperjson.dumps(fragment) == b"{}"
 
     def test_fragment_repr(self):
-        assert repr(orjson.Fragment(b"{}")).startswith("<orjson.Fragment object at ")
+        assert repr(hyperjson.Fragment(b"{}")).startswith("<hyperjson.Fragment object at ")
 
     def test_fragment_fragment_bytes(self):
-        assert orjson.dumps(orjson.Fragment(b"{}")) == b"{}"
-        assert orjson.dumps(orjson.Fragment(b"[]")) == b"[]"
-        assert orjson.dumps([orjson.Fragment(b"{}")]) == b"[{}]"
-        assert orjson.dumps([orjson.Fragment(b'{}"a\\')]) == b'[{}"a\\]'
+        assert hyperjson.dumps(hyperjson.Fragment(b"{}")) == b"{}"
+        assert hyperjson.dumps(hyperjson.Fragment(b"[]")) == b"[]"
+        assert hyperjson.dumps([hyperjson.Fragment(b"{}")]) == b"[{}]"
+        assert hyperjson.dumps([hyperjson.Fragment(b'{}"a\\')]) == b'[{}"a\\]'
 
     def test_fragment_fragment_str(self):
-        assert orjson.dumps(orjson.Fragment("{}")) == b"{}"
-        assert orjson.dumps(orjson.Fragment("[]")) == b"[]"
-        assert orjson.dumps([orjson.Fragment("{}")]) == b"[{}]"
-        assert orjson.dumps([orjson.Fragment('{}"a\\')]) == b'[{}"a\\]'
+        assert hyperjson.dumps(hyperjson.Fragment("{}")) == b"{}"
+        assert hyperjson.dumps(hyperjson.Fragment("[]")) == b"[]"
+        assert hyperjson.dumps([hyperjson.Fragment("{}")]) == b"[{}]"
+        assert hyperjson.dumps([hyperjson.Fragment('{}"a\\')]) == b'[{}"a\\]'
 
     def test_fragment_fragment_str_empty(self):
-        assert orjson.dumps(orjson.Fragment("")) == b""
+        assert hyperjson.dumps(hyperjson.Fragment("")) == b""
 
     def test_fragment_fragment_str_str(self):
-        assert orjson.dumps(orjson.Fragment('"str"')) == b'"str"'
+        assert hyperjson.dumps(hyperjson.Fragment('"str"')) == b'"str"'
 
     def test_fragment_fragment_str_emoji(self):
-        assert orjson.dumps(orjson.Fragment('"🐈"')) == b'"\xf0\x9f\x90\x88"'
+        assert hyperjson.dumps(hyperjson.Fragment('"🐈"')) == b'"\xf0\x9f\x90\x88"'
 
     def test_fragment_fragment_str_array(self):
         n = 8096
-        obj = [orjson.Fragment('"🐈"')] * n
+        obj = [hyperjson.Fragment('"🐈"')] * n
         ref = b"[" + b",".join(b'"\xf0\x9f\x90\x88"' for _ in range(n)) + b"]"
-        assert orjson.dumps(obj) == ref
+        assert hyperjson.dumps(obj) == ref
 
     def test_fragment_fragment_str_invalid(self):
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(orjson.Fragment("\ud800"))  # type: ignore
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(hyperjson.Fragment("\ud800"))  # type: ignore
 
     def test_fragment_fragment_bytes_invalid(self):
-        assert orjson.dumps(orjson.Fragment(b"\\ud800")) == b"\\ud800"
+        assert hyperjson.dumps(hyperjson.Fragment(b"\\ud800")) == b"\\ud800"
 
     def test_fragment_fragment_none(self):
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps([orjson.Fragment(None)])  # type: ignore
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps([hyperjson.Fragment(None)])  # type: ignore
 
     def test_fragment_fragment_args_zero(self):
         with pytest.raises(TypeError):
-            orjson.dumps(orjson.Fragment())
+            hyperjson.dumps(hyperjson.Fragment())
 
     def test_fragment_fragment_args_two(self):
         with pytest.raises(TypeError):
-            orjson.dumps(orjson.Fragment(b"{}", None))  # type: ignore
+            hyperjson.dumps(hyperjson.Fragment(b"{}", None))  # type: ignore
 
     def test_fragment_fragment_keywords(self):
         with pytest.raises(TypeError):
-            orjson.dumps(orjson.Fragment(contents=b"{}"))  # type: ignore
+            hyperjson.dumps(hyperjson.Fragment(contents=b"{}"))  # type: ignore
 
     def test_fragment_fragment_arg_and_keywords(self):
         with pytest.raises(TypeError):
-            orjson.dumps(orjson.Fragment(b"{}", contents=b"{}"))  # type: ignore
+            hyperjson.dumps(hyperjson.Fragment(b"{}", contents=b"{}"))  # type: ignore
 
 
 @pytest.mark.skipif(pd is None, reason="pandas is not installed")
@@ -90,12 +90,12 @@ class TestFragmentPandas:
 
         def default(value):
             if isinstance(value, pd.DataFrame):
-                return orjson.Fragment(value.to_json(orient="records"))
+                return hyperjson.Fragment(value.to_json(orient="records"))
             raise TypeError
 
         val = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
         assert (
-            orjson.dumps({"data": val}, default=default)
+            hyperjson.dumps({"data": val}, default=default)
             == b'{"data":[{"foo":1,"bar":4},{"foo":2,"bar":5},{"foo":3,"bar":6}]}'
         )
 
@@ -104,7 +104,7 @@ class TestFragmentPandas:
 class TestFragmentParsing:
     def _run_test(self, filename: str):
         data = read_fixture_bytes(filename, "parsing")
-        orjson.dumps(orjson.Fragment(data))
+        hyperjson.dumps(hyperjson.Fragment(data))
 
     def test_fragment_y_array_arraysWithSpace(self):
         self._run_test("y_array_arraysWithSpaces.json")

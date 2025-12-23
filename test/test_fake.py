@@ -5,7 +5,7 @@ import random
 
 import pytest
 
-import orjson
+import hyperjson
 
 try:
     from faker import Faker
@@ -47,5 +47,5 @@ class TestFaker:
             ]
             for _ in range(NUM_SHUFFLES):
                 random.shuffle(data)
-                output = orjson.dumps(data)
-                assert orjson.loads(output) == data
+                output = hyperjson.dumps(data)
+                assert hyperjson.loads(output) == data

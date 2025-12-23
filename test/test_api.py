@@ -8,7 +8,7 @@ import re
 
 import pytest
 
-import orjson
+import hyperjson
 
 SIMPLE_TYPES = (1, 1.0, -1, None, "str", True, False)
 
@@ -24,40 +24,40 @@ class TestApi:
         """
         loads() handles trailing whitespace
         """
-        assert orjson.loads("{}\n\t ") == {}
+        assert hyperjson.loads("{}\n\t ") == {}
 
     def test_loads_trailing_invalid(self):
         """
         loads() handles trailing invalid
         """
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, "{}\n\t a")
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, "{}\n\t a")
 
     def test_simple_json(self):
         """
         dumps() equivalent to json on simple types
         """
         for obj in SIMPLE_TYPES:
-            assert orjson.dumps(obj) == json.dumps(obj).encode("utf-8")
+            assert hyperjson.dumps(obj) == json.dumps(obj).encode("utf-8")
 
     def test_simple_round_trip(self):
         """
         dumps(), loads() round trip on simple types
         """
         for obj in SIMPLE_TYPES:
-            assert orjson.loads(orjson.dumps(obj)) == obj
+            assert hyperjson.loads(hyperjson.dumps(obj)) == obj
 
     def test_loads_type(self):
         """
         loads() invalid type
         """
         for val in (1, 3.14, [], {}, None):  # type: ignore
-            pytest.raises(orjson.JSONDecodeError, orjson.loads, val)
+            pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, val)
 
     def test_loads_recursion_partial(self):
         """
         loads() recursion limit partial
         """
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, "[" * (1024 * 1024))
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, "[" * (1024 * 1024))
 
     def test_loads_recursion_valid_limit_array(self):
         """
@@ -65,7 +65,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT + 1
         value = b"[" * n + b"]" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_limit_object(self):
         """
@@ -73,7 +73,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT
         value = b'{"key":' * n + b'{"key":true}' + b"}" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_limit_mixed(self):
         """
@@ -81,7 +81,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT
         value = b"".join((b"[", b'{"key":' * n, b'{"key":true}' + b"}" * n, b"]"))
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_excessive_array(self):
         """
@@ -89,7 +89,7 @@ class TestApi:
         """
         n = 10000000
         value = b"[" * n + b"]" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_limit_array_pretty(self):
         """
@@ -97,7 +97,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT + 1
         value = b"[\n  " * n + b"]" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_limit_object_pretty(self):
         """
@@ -105,7 +105,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT
         value = b'{\n  "key":' * n + b'{"key":true}' + b"}" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_limit_mixed_pretty(self):
         """
@@ -113,7 +113,7 @@ class TestApi:
         """
         n = LOADS_RECURSION_LIMIT
         value = b'[\n  {"key":' * n + b'{"key":true}' + b"}" * n + b"]"
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_loads_recursion_valid_excessive_array_pretty(self):
         """
@@ -121,66 +121,66 @@ class TestApi:
         """
         n = 10000000
         value = b"[\n  " * n + b"]" * n
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, value)
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, value)
 
     def test_version(self):
         """
         __version__
         """
-        assert re.match(r"^\d+\.\d+(\.\d+)?$", orjson.__version__)
+        assert re.match(r"^\d+\.\d+(\.\d+)?$", hyperjson.__version__)
 
     def test_valueerror(self):
         """
-        orjson.JSONDecodeError is a subclass of ValueError
+        hyperjson.JSONDecodeError is a subclass of ValueError
         """
-        pytest.raises(orjson.JSONDecodeError, orjson.loads, "{")
-        pytest.raises(ValueError, orjson.loads, "{")
+        pytest.raises(hyperjson.JSONDecodeError, hyperjson.loads, "{")
+        pytest.raises(ValueError, hyperjson.loads, "{")
 
     def test_optional_none(self):
         """
         dumps() option, default None
         """
-        assert orjson.dumps([], option=None) == b"[]"
-        assert orjson.dumps([], default=None) == b"[]"
-        assert orjson.dumps([], option=None, default=None) == b"[]"
-        assert orjson.dumps([], None, None) == b"[]"
+        assert hyperjson.dumps([], option=None) == b"[]"
+        assert hyperjson.dumps([], default=None) == b"[]"
+        assert hyperjson.dumps([], option=None, default=None) == b"[]"
+        assert hyperjson.dumps([], None, None) == b"[]"
 
     def test_option_not_int(self):
         """
         dumps() option not int or None
         """
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(True, option=True)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(True, option=True)
 
     def test_option_invalid_int(self):
         """
         dumps() option invalid 64-bit number
         """
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(True, option=9223372036854775809)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(True, option=9223372036854775809)
 
     def test_option_range_low(self):
         """
         dumps() option out of range low
         """
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(True, option=-1)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(True, option=-1)
 
     def test_option_range_high(self):
         """
         dumps() option out of range high
         """
-        with pytest.raises(orjson.JSONEncodeError):
-            orjson.dumps(True, option=1 << 12)
+        with pytest.raises(hyperjson.JSONEncodeError):
+            hyperjson.dumps(True, option=1 << 12)
 
     def test_opts_multiple(self):
         """
         dumps() multiple option
         """
         assert (
-            orjson.dumps(
+            hyperjson.dumps(
                 [1, datetime.datetime(2000, 1, 1, 2, 3, 4)],
-                option=orjson.OPT_STRICT_INTEGER | orjson.OPT_NAIVE_UTC,
+                option=hyperjson.OPT_STRICT_INTEGER | hyperjson.OPT_NAIVE_UTC,
             )
             == b'[1,"2000-01-01T02:03:04+00:00"]'
         )
@@ -190,36 +190,36 @@ class TestApi:
         dumps() positional arg
         """
         with pytest.raises(TypeError):
-            orjson.dumps(__obj={})  # type: ignore
+            hyperjson.dumps(__obj={})  # type: ignore
         with pytest.raises(TypeError):
-            orjson.dumps(zxc={})  # type: ignore
+            hyperjson.dumps(zxc={})  # type: ignore
 
     def test_default_unknown_kwarg(self):
         """
         dumps() unknown kwarg
         """
         with pytest.raises(TypeError):
-            orjson.dumps({}, zxc=default)  # type: ignore
+            hyperjson.dumps({}, zxc=default)  # type: ignore
 
     def test_default_empty_kwarg(self):
         """
         dumps() empty kwarg
         """
-        assert orjson.dumps(None) == b"null"
+        assert hyperjson.dumps(None) == b"null"
 
     def test_default_twice(self):
         """
         dumps() default twice
         """
         with pytest.raises(TypeError):
-            orjson.dumps({}, default, default=default)  # type: ignore
+            hyperjson.dumps({}, default, default=default)  # type: ignore
 
     def test_option_twice(self):
         """
         dumps() option twice
         """
         with pytest.raises(TypeError):
-            orjson.dumps({}, None, orjson.OPT_NAIVE_UTC, option=orjson.OPT_NAIVE_UTC)  # type: ignore
+            hyperjson.dumps({}, None, hyperjson.OPT_NAIVE_UTC, option=hyperjson.OPT_NAIVE_UTC)  # type: ignore
 
     def test_option_mixed(self):
         """
@@ -231,10 +231,10 @@ class TestApi:
                 return "zxc"
 
         assert (
-            orjson.dumps(
+            hyperjson.dumps(
                 [Custom(), datetime.datetime(2000, 1, 1, 2, 3, 4)],
                 default,
-                option=orjson.OPT_NAIVE_UTC,
+                option=hyperjson.OPT_NAIVE_UTC,
             )
             == b'["zxc","2000-01-01T02:03:04+00:00"]'
         )
@@ -244,31 +244,31 @@ class TestApi:
         dumps() valid __text_signature__
         """
         assert (
-            str(inspect.signature(orjson.dumps))
+            str(inspect.signature(hyperjson.dumps))
             == "(obj, /, default=None, option=None)"
         )
-        inspect.signature(orjson.dumps).bind("str")
-        inspect.signature(orjson.dumps).bind("str", default=default, option=1)
-        inspect.signature(orjson.dumps).bind("str", default=None, option=None)
+        inspect.signature(hyperjson.dumps).bind("str")
+        inspect.signature(hyperjson.dumps).bind("str", default=default, option=1)
+        inspect.signature(hyperjson.dumps).bind("str", default=None, option=None)
 
     def test_loads_signature(self):
         """
         loads() valid __text_signature__
         """
-        assert str(inspect.signature(orjson.loads)), "(obj == /)"
-        inspect.signature(orjson.loads).bind("[]")
+        assert str(inspect.signature(hyperjson.loads)), "(obj == /)"
+        inspect.signature(hyperjson.loads).bind("[]")
 
     def test_dumps_module_str(self):
         """
-        orjson.dumps.__module__ is a str
+        hyperjson.dumps.__module__ is a str
         """
-        assert orjson.dumps.__module__ == "orjson"
+        assert hyperjson.dumps.__module__ == "hyperjson"
 
     def test_loads_module_str(self):
         """
-        orjson.loads.__module__ is a str
+        hyperjson.loads.__module__ is a str
         """
-        assert orjson.loads.__module__ == "orjson"
+        assert hyperjson.loads.__module__ == "hyperjson"
 
     def test_bytes_buffer(self):
         """
@@ -277,11 +277,11 @@ class TestApi:
         a = "a" * 900
         b = "b" * 4096
         c = "c" * 4096 * 4096
-        assert orjson.dumps([a, b, c]) == f'["{a}","{b}","{c}"]'.encode("utf-8")
+        assert hyperjson.dumps([a, b, c]) == f'["{a}","{b}","{c}"]'.encode("utf-8")
 
     def test_bytes_null_terminated(self):
         """
         dumps() PyBytesObject buffer is null-terminated
         """
         # would raise ValueError: invalid literal for int() with base 10: b'1596728892'
-        int(orjson.dumps(1596728892))
+        int(hyperjson.dumps(1596728892))

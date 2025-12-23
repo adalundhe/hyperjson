@@ -3,37 +3,37 @@
 
 import pytest
 
-import orjson
+import hyperjson
 
 from .util import SUPPORTS_MEMORYVIEW, needs_data, read_fixture_bytes
 
 
 @needs_data
 class TestJSONTestSuiteParsing:
-    def _run_fail_json(self, filename, exc=orjson.JSONDecodeError):
+    def _run_fail_json(self, filename, exc=hyperjson.JSONDecodeError):
         data = read_fixture_bytes(filename, "parsing")
         with pytest.raises(exc):
-            orjson.loads(data)
+            hyperjson.loads(data)
         with pytest.raises(exc):
-            orjson.loads(bytearray(data))
+            hyperjson.loads(bytearray(data))
         if SUPPORTS_MEMORYVIEW:
             with pytest.raises(exc):
-                orjson.loads(memoryview(data))
+                hyperjson.loads(memoryview(data))
         try:
             decoded = data.decode("utf-8")
         except UnicodeDecodeError:
             pass
         else:
             with pytest.raises(exc):
-                orjson.loads(decoded)
+                hyperjson.loads(decoded)
 
     def _run_pass_json(self, filename, match=""):
         data = read_fixture_bytes(filename, "parsing")
-        orjson.loads(data)
-        orjson.loads(bytearray(data))
+        hyperjson.loads(data)
+        hyperjson.loads(bytearray(data))
         if SUPPORTS_MEMORYVIEW:
-            orjson.loads(memoryview(data))
-        orjson.loads(data.decode("utf-8"))
+            hyperjson.loads(memoryview(data))
+        hyperjson.loads(data.decode("utf-8"))
 
     def test_y_array_arraysWithSpace(self):
         """
@@ -1939,7 +1939,7 @@ class TestJSONTestSuiteParsing:
         """
         try:
             self._run_pass_json("i_structure_500_nested_arrays.json.xz")
-        except orjson.JSONDecodeError:
+        except hyperjson.JSONDecodeError:
             # fails on serde, passes on yyjson
             pass
 
