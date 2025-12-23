@@ -73,7 +73,7 @@ impl Drop for ParseBuffer {
 }
 
 /// Slimmed-down per-interpreter state.
-/// 
+///
 /// Built-in types (str, int, dict, list, etc.) are now accessed via direct
 /// CPython global symbols in typeref.rs, eliminating pointer indirection.
 /// Only truly per-interpreter data is stored here.
@@ -173,7 +173,7 @@ unsafe fn look_up_datetime(
 
 impl InterpreterState {
     /// Initialize a new interpreter state for the current interpreter.
-    /// 
+    ///
     /// This is a cold path - only called once per interpreter.
     /// Built-in types are now accessed via direct CPython globals,
     /// so we only initialize per-interpreter specific data here.

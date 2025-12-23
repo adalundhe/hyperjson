@@ -18,7 +18,7 @@ pub(crate) fn get_unicode_key(
         cold_path!();
         return PyStr::from_str_with_hash(key_str);
     }
-    
+
     // Fast path: direct cache lookup with FNV hash
     assume!(key_str.len() <= 64);
     unsafe {

@@ -142,7 +142,6 @@ pub(crate) fn deserialize(
     Ok(pyval)
 }
 
-
 /// Fast primitive parsing with direct tag dispatch
 /// Inlined for performance - handles string/number/bool/null
 #[inline(always)]

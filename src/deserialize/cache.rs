@@ -10,7 +10,7 @@ use crate::str::PyStr;
 pub(crate) fn fnv1a_hash(data: &[u8]) -> u64 {
     const FNV_OFFSET: u64 = 0xcbf29ce484222325;
     const FNV_PRIME: u64 = 0x100000001b3;
-    
+
     let mut hash = FNV_OFFSET;
     for &byte in data {
         hash ^= byte as u64;
@@ -62,7 +62,7 @@ impl KeyCache {
             entries: [const { CacheEntry::empty() }; CACHE_SIZE],
         }
     }
-    
+
     /// Get or insert a cached key
     /// Returns the PyStr (with incremented refcount)
     #[inline(always)]
@@ -72,31 +72,31 @@ impl KeyCache {
             let hash = fnv1a_hash(bytes);
             let index = (hash as usize) & CACHE_MASK;
             let len = bytes.len() as u8;
-            
+
             let entry = &mut self.entries[index];
-            
+
             // Fast path: cache hit (hash and length match)
             if !entry.ptr.is_null() && entry.hash == hash && entry.len == len {
                 // Hit - increment refcount and return
                 ffi!(Py_INCREF(entry.ptr));
                 return PyStr::from_ptr_unchecked(entry.ptr);
             }
-            
+
             // Cache miss - create new string and cache it
             let new_str = PyStr::from_str_with_hash(key_str);
             let new_ptr = new_str.as_ptr();
-            
+
             // Evict old entry if present
             if !entry.ptr.is_null() {
                 ffi!(Py_DECREF(entry.ptr));
             }
-            
+
             // Store new entry (keep one reference for cache)
             ffi!(Py_INCREF(new_ptr));
             entry.ptr = new_ptr;
             entry.hash = hash;
             entry.len = len;
-            
+
             new_str
         }
     }
