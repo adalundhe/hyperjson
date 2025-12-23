@@ -1,6 +1,6 @@
 [package]
 name = "hyperjson"
-version = "3.11.5"
+version = "0.1.0"
 authors = ["ijl <ijl@mailbox.org>"]
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy with subinterpreter support"
 repository = "https://github.com/ijl/orjson"
