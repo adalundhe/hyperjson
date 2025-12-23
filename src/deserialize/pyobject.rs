@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 // Copyright ijl (2022-2025)
 
-#[cfg(not(Py_GIL_DISABLED))]
-use crate::deserialize::cache::CachedKey;
 use crate::str::PyStr;
-// NONE, TRUE, FALSE now accessed via typeref accessor functions
 use core::ptr::NonNull;
 
 /// Get a cached unicode key for dictionary keys.
-/// This is the hot path for deserialization - cache lookup for repeated keys.
+/// Uses a simple direct-mapped cache with FNV-1a hashing for maximum speed.
 #[cfg(not(Py_GIL_DISABLED))]
 #[inline(always)]
 pub(crate) fn get_unicode_key(
@@ -16,21 +13,17 @@ pub(crate) fn get_unicode_key(
     interpreter_state: *const crate::interpreter_state::InterpreterState,
 ) -> PyStr {
     // Long keys (>64 bytes) - unlikely to repeat, skip cache
+    // Also keys > 255 bytes can't fit in u8 len field
     if key_str.len() > 64 {
         cold_path!();
         return PyStr::from_str_with_hash(key_str);
     }
     
-    // Cache lookup for keys <= 64 bytes
+    // Fast path: direct cache lookup with FNV hash
     assume!(key_str.len() <= 64);
     unsafe {
-        let key_map_ptr = (*interpreter_state).key_map.get();
-        let hash = xxhash_rust::xxh3::xxh3_64(key_str.as_bytes());
-        let entry = (*key_map_ptr).entry(&hash).or_insert_with(
-            || hash,
-            || CachedKey::new(PyStr::from_str_with_hash(key_str)),
-        );
-        entry.get()
+        let cache = &mut *(*interpreter_state).key_map.get();
+        cache.get_or_insert(key_str)
     }
 }
 

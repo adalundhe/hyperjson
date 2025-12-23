@@ -40,7 +40,6 @@ inline_int = []
 optimize = []
 
 [dependencies]
-associative-cache = { version = "2", default-features = false }
 bytes = { version = "1", default-features = false }
 bytecount = { version = "^0.6.7", default-features = false, features = ["runtime-dispatch-simd"] }
 encoding_rs = { version = "0.8", default-features = false }
@@ -57,7 +56,6 @@ simdutf8 = { version = "0.1", default-features = false, features = ["std", "publ
 smallvec = { version = "^1.11", default-features = false, features = ["union", "write"] }
 unwinding = { version = "=0.2.8", default-features = false, features = ["unwinder"], optional = true }
 uuid = { version = "1", default-features = false }
-xxhash-rust = { version = "^0.8", default-features = false, features = ["xxh3"] }
 
 [build-dependencies]
 cc = { version = "1" }

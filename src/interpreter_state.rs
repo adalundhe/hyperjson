@@ -11,7 +11,7 @@ use core::ptr::null_mut;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use crate::deserialize::cache::KeyMap;
+use crate::deserialize::cache::KeyCache;
 use crate::ffi::{
     Py_DECREF, Py_INCREF, Py_XDECREF, PyErr_NewException, PyExc_TypeError, PyImport_ImportModule,
     PyMapping_GetItemString, PyObject, PyObject_GenericGetDict, PyTypeObject,
@@ -118,7 +118,7 @@ pub(crate) struct InterpreterState {
     // Cache - per-interpreter (using UnsafeCell for interior mutability)
     // Safe because GIL ensures single-threaded access within an interpreter
     #[cfg(not(Py_GIL_DISABLED))]
-    pub key_map: core::cell::UnsafeCell<KeyMap>,
+    pub key_map: core::cell::UnsafeCell<KeyCache>,
 
     // Pre-allocated buffer for yyjson parsing - avoids malloc/free per parse
     // Safe because GIL ensures single-threaded access
@@ -215,7 +215,7 @@ impl InterpreterState {
                 json_decode_error: null_mut(),
                 // Caches
                 #[cfg(not(Py_GIL_DISABLED))]
-                key_map: core::cell::UnsafeCell::new(KeyMap::default()),
+                key_map: core::cell::UnsafeCell::new(KeyCache::new()),
                 parse_buffer: core::cell::UnsafeCell::new(ParseBuffer::new()),
             };
 
