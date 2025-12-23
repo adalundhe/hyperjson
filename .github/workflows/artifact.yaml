@@ -163,18 +163,20 @@ jobs:
           cp ci/config.toml .cargo/config.toml
 
       # Build inside QEMU-emulated manylinux container
+      # Note: We use simpler RUSTFLAGS here because panic=immediate-abort requires
+      # rebuilding std with -Z build-std, which is complex in the container environment
       - name: Build
         run: |
           docker run --rm --platform linux/s390x \
             -v "${{ github.workspace }}:/io" \
             -w /io \
-            -e RUSTFLAGS="-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10" \
+            -e RUSTFLAGS="-D warnings -C target-cpu=z10" \
             quay.io/pypa/manylinux_2_34_s390x:latest \
             bash -c '
               set -eoux pipefail
 
-              # Install Rust nightly
-              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ env.RUST_TOOLCHAIN }} --component rust-src
+              # Install Rust stable (nightly not needed without -Z flags)
+              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
               source $HOME/.cargo/env
 
               # Build wheel
