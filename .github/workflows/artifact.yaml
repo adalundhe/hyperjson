@@ -137,20 +137,18 @@ jobs:
   manylinux_s390x:
     name: "manylinux_s390x_${{ matrix.python.interpreter }}"
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         python: [
-          { version: '3.14', interpreter: 'python3.14', publish: true },
-          { version: '3.13', interpreter: 'python3.13', publish: true },
-          { version: '3.12', interpreter: 'python3.12', publish: true },
-          { version: '3.11', interpreter: 'python3.11', publish: true },
-          { version: '3.10', interpreter: 'python3.10', publish: true },
-          { version: '3.9', interpreter: 'python3.9', publish: true },
+          { version: '3.14', interpreter: 'python3.14', abi: 'cp314-cp314', publish: true },
+          { version: '3.13', interpreter: 'python3.13', abi: 'cp313-cp313', publish: true },
+          { version: '3.12', interpreter: 'python3.12', abi: 'cp312-cp312', publish: true },
+          { version: '3.11', interpreter: 'python3.11', abi: 'cp311-cp311', publish: true },
+          { version: '3.10', interpreter: 'python3.10', abi: 'cp310-cp310', publish: true },
+          { version: '3.9', interpreter: 'python3.9', abi: 'cp39-cp39', publish: true },
         ]
-    env:
-      RUSTFLAGS: "-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10"
     steps:
       - uses: actions/checkout@v6
 
@@ -164,14 +162,25 @@ jobs:
           mkdir -p .cargo
           cp ci/config.toml .cargo/config.toml
 
+      # Build inside QEMU-emulated manylinux container
       - name: Build
-        uses: PyO3/maturin-action@v1
-        with:
-          target: s390x-unknown-linux-gnu
-          rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
-          rustup-components: rust-src
-          manylinux: manylinux_2_34
-          args: --release --strip --out=dist -i ${{ matrix.python.interpreter }}
+        run: |
+          docker run --rm --platform linux/s390x \
+            -v "${{ github.workspace }}:/io" \
+            -w /io \
+            -e RUSTFLAGS="-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10" \
+            quay.io/pypa/manylinux_2_34_s390x:latest \
+            bash -c '
+              set -eoux pipefail
+
+              # Install Rust nightly
+              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ env.RUST_TOOLCHAIN }} --component rust-src
+              source $HOME/.cargo/env
+
+              # Build wheel
+              /opt/python/${{ matrix.python.abi }}/bin/pip install maturin
+              /opt/python/${{ matrix.python.abi }}/bin/maturin build --release --strip --out dist -i /opt/python/${{ matrix.python.abi }}/bin/python
+            '
 
       - name: Store wheels
         if: matrix.python.publish == true
