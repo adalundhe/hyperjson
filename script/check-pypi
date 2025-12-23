@@ -24,7 +24,6 @@ abis = (
 )
 
 per_abi_tags = (
-    "macosx_10_15_x86_64.macosx_11_0_arm64",
     "manylinux_2_34_aarch64",
     "manylinux_2_34_armv7l",
     "manylinux_2_34_ppc64le",
@@ -33,7 +32,6 @@ per_abi_tags = (
     "musllinux_1_2_aarch64",
     "musllinux_1_2_armv7l",
     "musllinux_1_2_x86_64",
-    "win32",
     "win_amd64",
 )
 
