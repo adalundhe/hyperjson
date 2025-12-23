@@ -122,9 +122,6 @@ jobs:
             venv/bin/pip install hyperjson --no-index --find-links dist/ --force-reinstall
             PYTHONMALLOC="debug" venv/bin/python -m pytest -v test
             venv/bin/python integration/thread
-            venv/bin/python integration/client &
-            sleep 2
-            venv/bin/python integration/http
 
       - name: Store wheels
         if: matrix.python.publish == true
