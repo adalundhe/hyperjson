@@ -19,5 +19,6 @@ pub(crate) use scalar::format_escaped_str_scalar;
 #[cfg(target_arch = "x86_64")]
 pub(crate) use sse2::format_escaped_str_impl_sse2_128;
 
+#[allow(unused_imports)]
 #[cfg(all(feature = "generic_simd", not(target_arch = "x86_64")))]
 pub(crate) use generic::format_escaped_str_impl_generic_128;

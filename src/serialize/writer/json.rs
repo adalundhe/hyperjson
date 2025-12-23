@@ -562,20 +562,21 @@ where
     }
 }
 
-macro_rules! reserve_str {
-    ($writer:expr, $value:expr) => {
-        $writer.reserve($value.len() * 8 + 32);
-    };
+/// Reserve space for escaped string output
+#[inline(always)]
+fn reserve_str<W: ?Sized + WriteExt>(writer: &mut W, value: &str) {
+    writer.reserve(value.len() * 8 + 32);
 }
 
-#[cfg(all(target_arch = "x86_64", not(feature = "avx512")))]
+/// Format escaped string - x86_64 uses SSE2 implementation
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 fn format_escaped_str<W>(writer: &mut W, value: &str)
 where
     W: ?Sized + WriteExt + bytes::BufMut,
 {
     unsafe {
-        reserve_str!(writer, value);
+        reserve_str(writer, value);
 
         let written = crate::serialize::writer::str::format_escaped_str_impl_sse2_128(
             writer.as_mut_buffer_ptr(),
@@ -587,38 +588,15 @@ where
     }
 }
 
-#[cfg(all(target_arch = "x86_64", feature = "avx512"))]
+/// Format escaped string - non-x86_64 with generic SIMD
+#[cfg(all(not(target_arch = "x86_64"), feature = "generic_simd"))]
 #[inline(always)]
 fn format_escaped_str<W>(writer: &mut W, value: &str)
 where
     W: ?Sized + WriteExt + bytes::BufMut,
 {
     unsafe {
-        reserve_str!(writer, value);
-
-        // Use SSE2 implementation directly since AVX512 implementations were removed
-        let written = crate::serialize::writer::str::format_escaped_str_impl_sse2_128(
-            writer.as_mut_buffer_ptr(),
-            value.as_bytes().as_ptr(),
-            value.len(),
-        );
-
-        writer.advance_mut(written);
-    }
-}
-
-#[cfg(all(
-    not(target_arch = "x86_64"),
-    not(feature = "avx512"),
-    feature = "generic_simd"
-))]
-#[inline(always)]
-fn format_escaped_str<W>(writer: &mut W, value: &str)
-where
-    W: ?Sized + WriteExt + bytes::BufMut,
-{
-    unsafe {
-        reserve_str!(writer, value);
+        reserve_str(writer, value);
 
         let written = crate::serialize::writer::str::format_escaped_str_impl_generic_128(
             writer.as_mut_buffer_ptr(),
@@ -630,6 +608,7 @@ where
     }
 }
 
+/// Format escaped string - non-x86_64 scalar fallback
 #[cfg(all(not(target_arch = "x86_64"), not(feature = "generic_simd")))]
 #[inline(always)]
 fn format_escaped_str<W>(writer: &mut W, value: &str)
@@ -637,7 +616,7 @@ where
     W: ?Sized + WriteExt + bytes::BufMut,
 {
     unsafe {
-        reserve_str!(writer, value);
+        reserve_str(writer, value);
 
         let written = crate::serialize::writer::str::format_escaped_str_scalar(
             writer.as_mut_buffer_ptr(),
