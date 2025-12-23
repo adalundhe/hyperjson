@@ -185,7 +185,6 @@ jobs:
     - name: Build
       uses: PyO3/maturin-action@v1
       env:
-        PYO3_CROSS_LIB_DIR: "/opt/python/${{ matrix.python.abi }}"
         RUSTFLAGS: "${{ matrix.target.rustflags }}"
         JEMALLOC_SYS_WITH_LG_PAGE: "16"
       with:
@@ -194,6 +193,7 @@ jobs:
         rustup-components: rust-src
         manylinux: "${{ matrix.python.manylinux }}"
         # Use zig as cross-compiler - handles C code (yyjson) automatically
+        # Python is installed via actions/setup-python, so no PYO3_CROSS_LIB_DIR needed
         args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }} --zig
 
     - name: Store wheels
