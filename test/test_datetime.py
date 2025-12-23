@@ -163,7 +163,9 @@ class TestDatetime:
         pytz.UTC
         """
         assert (
-            hyperjson.dumps([datetime.datetime(2018, 6, 1, 2, 3, 4, 0, tzinfo=pytz.UTC)])
+            hyperjson.dumps(
+                [datetime.datetime(2018, 6, 1, 2, 3, 4, 0, tzinfo=pytz.UTC)],
+            )
             == b'["2018-06-01T02:03:04+00:00"]'
         )
 
@@ -753,7 +755,8 @@ class TestDate:
         datetime.date MINYEAR
         """
         assert (
-            hyperjson.dumps([datetime.date(datetime.MINYEAR, 1, 1)]) == b'["0001-01-01"]'
+            hyperjson.dumps([datetime.date(datetime.MINYEAR, 1, 1)])
+            == b'["0001-01-01"]'
         )
 
     def test_date_max(self):
@@ -761,7 +764,8 @@ class TestDate:
         datetime.date MAXYEAR
         """
         assert (
-            hyperjson.dumps([datetime.date(datetime.MAXYEAR, 12, 31)]) == b'["9999-12-31"]'
+            hyperjson.dumps([datetime.date(datetime.MAXYEAR, 12, 31)])
+            == b'["9999-12-31"]'
         )
 
     def test_date_three_digits(self):
@@ -792,7 +796,9 @@ class TestTime:
         """
         datetime.time
         """
-        assert hyperjson.dumps([datetime.time(12, 15, 59, 111)]) == b'["12:15:59.000111"]'
+        assert (
+            hyperjson.dumps([datetime.time(12, 15, 59, 111)]) == b'["12:15:59.000111"]'
+        )
         assert hyperjson.dumps([datetime.time(12, 15, 59)]) == b'["12:15:59"]'
 
     @pytest.mark.skipif(zoneinfo is None, reason="zoneinfo not available")

@@ -6,12 +6,11 @@ import collections
 import io
 import os
 
+import orjson
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from tabulate import tabulate
-
-import orjson
 
 LIBRARIES = ("orjson", "json")
 

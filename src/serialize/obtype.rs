@@ -30,27 +30,35 @@ pub(crate) enum ObType {
     Unknown,
 }
 
-pub(crate) fn pyobject_to_obtype(obj: *mut crate::ffi::PyObject, opts: Opt) -> ObType {
+pub(crate) fn pyobject_to_obtype(
+    obj: *mut crate::ffi::PyObject,
+    opts: Opt,
+    interpreter_state: *const crate::interpreter_state::InterpreterState,
+) -> ObType {
     let ob_type = ob_type!(obj);
-    if is_class_by_type!(ob_type, crate::typeref::get_str_type()) {
+    // Use direct CPython global accessors for built-in types (zero indirection)
+    if is_class_by_type!(ob_type, crate::typeref::str_type_ptr()) {
         ObType::Str
-    } else if is_class_by_type!(ob_type, crate::typeref::get_int_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::int_type_ptr()) {
         ObType::Int
-    } else if is_class_by_type!(ob_type, crate::typeref::get_bool_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::bool_type_ptr()) {
         ObType::Bool
-    } else if is_class_by_type!(ob_type, crate::typeref::get_none_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::none_type_ptr()) {
         ObType::None
-    } else if is_class_by_type!(ob_type, crate::typeref::get_float_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::float_type_ptr()) {
         ObType::Float
-    } else if is_class_by_type!(ob_type, crate::typeref::get_list_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::list_type_ptr()) {
         ObType::List
-    } else if is_class_by_type!(ob_type, crate::typeref::get_dict_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::dict_type_ptr()) {
         ObType::Dict
-    } else if is_class_by_type!(ob_type, crate::typeref::get_datetime_type()) && opt_disabled!(opts, PASSTHROUGH_DATETIME)
+    } else if is_class_by_type!(
+        ob_type,
+        crate::typeref::get_datetime_type_from_state(interpreter_state)
+    ) && opt_disabled!(opts, PASSTHROUGH_DATETIME)
     {
         ObType::Datetime
     } else {
-        pyobject_to_obtype_unlikely(ob_type, opts)
+        pyobject_to_obtype_unlikely(ob_type, opts, interpreter_state)
     }
 }
 
@@ -59,19 +67,33 @@ pub(crate) fn pyobject_to_obtype(obj: *mut crate::ffi::PyObject, opts: Opt) -> O
 pub(crate) fn pyobject_to_obtype_unlikely(
     ob_type: *mut crate::ffi::PyTypeObject,
     opts: Opt,
+    interpreter_state: *const crate::interpreter_state::InterpreterState,
 ) -> ObType {
-    if is_class_by_type!(ob_type, crate::typeref::get_uuid_type()) {
+    if is_class_by_type!(
+        ob_type,
+        crate::typeref::get_uuid_type_from_state(interpreter_state)
+    ) {
         return ObType::Uuid;
-    } else if is_class_by_type!(ob_type, crate::typeref::get_tuple_type()) {
+    } else if is_class_by_type!(ob_type, crate::typeref::tuple_type_ptr()) {
+        // Use direct CPython global for tuple type
         return ObType::Tuple;
-    } else if is_class_by_type!(ob_type, crate::typeref::get_fragment_type()) {
+    } else if is_class_by_type!(
+        ob_type,
+        crate::typeref::get_fragment_type_from_state(interpreter_state)
+    ) {
         return ObType::Fragment;
     }
 
     if opt_disabled!(opts, PASSTHROUGH_DATETIME) {
-        if is_class_by_type!(ob_type, crate::typeref::get_date_type()) {
+        if is_class_by_type!(
+            ob_type,
+            crate::typeref::get_date_type_from_state(interpreter_state)
+        ) {
             return ObType::Date;
-        } else if is_class_by_type!(ob_type, crate::typeref::get_time_type()) {
+        } else if is_class_by_type!(
+            ob_type,
+            crate::typeref::get_time_type_from_state(interpreter_state)
+        ) {
             return ObType::Time;
         }
     }
@@ -90,11 +112,18 @@ pub(crate) fn pyobject_to_obtype_unlikely(
         }
     }
 
-    if is_subclass_by_type!(ob_type, crate::typeref::get_enum_type()) {
+    if is_subclass_by_type!(
+        ob_type,
+        crate::typeref::get_enum_type_from_state(interpreter_state)
+    ) {
         return ObType::Enum;
     }
 
-    if opt_disabled!(opts, PASSTHROUGH_DATACLASS) && pydict_contains!(ob_type, crate::typeref::get_dataclass_fields_str())
+    if opt_disabled!(opts, PASSTHROUGH_DATACLASS)
+        && pydict_contains!(
+            ob_type,
+            crate::typeref::get_dataclass_fields_str_from_state(interpreter_state)
+        )
     {
         return ObType::Dataclass;
     }

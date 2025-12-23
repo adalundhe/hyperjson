@@ -10,7 +10,9 @@ use crate::serialize::per_type::{
 };
 use crate::serialize::serializer::PyObjectSerializer;
 use crate::str::PyStr;
-use crate::typeref::{get_array_struct_str, get_descr_str, get_dtype_str, NUMPY_TYPES, load_numpy_types};
+use crate::typeref::{
+    NUMPY_TYPES, get_array_struct_str, get_descr_str, get_dtype_str, load_numpy_types,
+};
 use crate::util::isize_to_usize;
 use core::ffi::{c_char, c_int, c_void};
 use jiff::Timestamp;

@@ -6,9 +6,105 @@ use core::ptr::{NonNull, null_mut};
 use once_cell::race::OnceBox;
 
 use crate::ffi::{
-    Py_XDECREF, PyErr_Clear, PyImport_ImportModule, PyMapping_GetItemString, PyObject,
-    PyObject_GenericGetDict, PyTypeObject,
+    Py_False, Py_None, Py_True, Py_XDECREF, PyBool_Type, PyByteArray_Type, PyBytes_Type,
+    PyDict_Type, PyErr_Clear, PyFloat_Type, PyImport_ImportModule, PyList_Type, PyLong_Type,
+    PyMapping_GetItemString, PyMemoryView_Type, PyObject, PyObject_GenericGetDict, PyTuple_Type,
+    PyTypeObject, PyUnicode_Type,
 };
+
+// ============================================================================
+// DIRECT CPython GLOBALS - Zero overhead, no indirection
+// These are CPython global symbols that are the same across ALL interpreters
+// Using these directly in hot paths eliminates pointer indirection overhead
+// ============================================================================
+
+/// Get the str type directly from CPython global - fastest path
+#[inline(always)]
+pub(crate) fn str_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyUnicode_Type }
+}
+
+/// Get the int type directly from CPython global
+#[inline(always)]
+pub(crate) fn int_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyLong_Type }
+}
+
+/// Get the bool type directly from CPython global
+#[inline(always)]
+pub(crate) fn bool_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyBool_Type }
+}
+
+/// Get the float type directly from CPython global
+#[inline(always)]
+pub(crate) fn float_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyFloat_Type }
+}
+
+/// Get the list type directly from CPython global
+#[inline(always)]
+pub(crate) fn list_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyList_Type }
+}
+
+/// Get the dict type directly from CPython global
+#[inline(always)]
+pub(crate) fn dict_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyDict_Type }
+}
+
+/// Get the tuple type directly from CPython global
+#[inline(always)]
+pub(crate) fn tuple_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyTuple_Type }
+}
+
+/// Get the bytes type directly from CPython global
+#[inline(always)]
+pub(crate) fn bytes_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyBytes_Type }
+}
+
+/// Get the bytearray type directly from CPython global
+#[inline(always)]
+pub(crate) fn bytearray_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyByteArray_Type }
+}
+
+/// Get the memoryview type directly from CPython global
+#[inline(always)]
+pub(crate) fn memoryview_type_ptr() -> *mut PyTypeObject {
+    unsafe { &raw mut PyMemoryView_Type }
+}
+
+/// Get None singleton directly from CPython
+#[inline(always)]
+pub(crate) fn none_ptr() -> *mut PyObject {
+    unsafe { Py_None() }
+}
+
+/// Get True singleton directly from CPython
+#[inline(always)]
+pub(crate) fn true_ptr() -> *mut PyObject {
+    unsafe { Py_True() }
+}
+
+/// Get False singleton directly from CPython
+#[inline(always)]
+pub(crate) fn false_ptr() -> *mut PyObject {
+    unsafe { Py_False() }
+}
+
+/// Get NoneType directly (derived from None singleton)
+#[inline(always)]
+pub(crate) fn none_type_ptr() -> *mut PyTypeObject {
+    unsafe { (*Py_None()).ob_type }
+}
+
+// ============================================================================
+// LEGACY ACCESSORS - Use direct *_ptr() functions in hot paths instead
+// ============================================================================
 
 // Accessor macros that use interpreter state instead of static variables
 // These provide a drop-in replacement for the old static variables
@@ -25,7 +121,9 @@ macro_rules! get_state {
     };
 }
 
-// Accessor functions for commonly used values
+use crate::interpreter_state::InterpreterState;
+
+// Accessor functions for commonly used values (legacy - use state-aware versions in hot paths)
 #[inline(always)]
 pub(crate) fn get_default() -> *mut PyObject {
     unsafe { get_state!().default }
@@ -47,23 +145,18 @@ pub(crate) fn get_true() -> *mut PyObject {
 }
 
 #[inline(always)]
-pub(crate) fn get_false() -> *mut PyObject {
-    unsafe { get_state!().false_ }
-}
-
-#[inline(always)]
 pub(crate) fn get_empty_unicode() -> *mut PyObject {
     unsafe { get_state!().empty_unicode }
 }
 
 #[inline(always)]
-pub(crate) fn get_int_type() -> *mut PyTypeObject {
-    unsafe { get_state!().int_type }
+pub(crate) fn get_empty_unicode_from_state(state: *const InterpreterState) -> *mut PyObject {
+    unsafe { (*state).empty_unicode }
 }
 
 #[inline(always)]
-pub(crate) fn get_none_type() -> *mut PyTypeObject {
-    unsafe { get_state!().none_type }
+pub(crate) fn get_int_type() -> *mut PyTypeObject {
+    unsafe { get_state!().int_type }
 }
 
 #[inline(always)]
@@ -79,6 +172,93 @@ pub(crate) fn get_json_encode_error() -> *mut PyObject {
 #[inline(always)]
 pub(crate) fn get_json_decode_error() -> *mut PyObject {
     unsafe { get_state!().json_decode_error }
+}
+
+// State-aware accessor functions for use in serialization hot paths
+// These accept the interpreter state pointer directly to avoid thread-local lookups
+#[inline(always)]
+pub(crate) fn get_str_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).str_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_int_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).int_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_bool_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).bool_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_none_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).none_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_float_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).float_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_list_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).list_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_dict_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).dict_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_datetime_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).datetime_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_date_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).date_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_time_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).time_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_uuid_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).uuid_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_tuple_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).tuple_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_fragment_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).fragment_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_enum_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
+    unsafe { (*state).enum_type }
+}
+
+#[inline(always)]
+pub(crate) fn get_dataclass_fields_str_from_state(state: *const InterpreterState) -> *mut PyObject {
+    unsafe { (*state).dataclass_fields_str }
+}
+
+#[inline(always)]
+pub(crate) fn get_dict_str_from_state(state: *const InterpreterState) -> *mut PyObject {
+    unsafe { (*state).dict_str }
+}
+
+#[inline(always)]
+pub(crate) fn get_slots_str_from_state(state: *const InterpreterState) -> *mut PyObject {
+    unsafe { (*state).slots_str }
 }
 
 // Additional accessors for string constants
@@ -104,48 +284,13 @@ pub(crate) fn get_str_type() -> *mut PyTypeObject {
 }
 
 #[inline(always)]
-pub(crate) fn get_bool_type() -> *mut PyTypeObject {
-    unsafe { get_state!().bool_type }
-}
-
-#[inline(always)]
 pub(crate) fn get_list_type() -> *mut PyTypeObject {
     unsafe { get_state!().list_type }
 }
 
 #[inline(always)]
-pub(crate) fn get_dict_type() -> *mut PyTypeObject {
-    unsafe { get_state!().dict_type }
-}
-
-#[inline(always)]
 pub(crate) fn get_tuple_type() -> *mut PyTypeObject {
     unsafe { get_state!().tuple_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_datetime_type() -> *mut PyTypeObject {
-    unsafe { get_state!().datetime_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_date_type() -> *mut PyTypeObject {
-    unsafe { get_state!().date_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_time_type() -> *mut PyTypeObject {
-    unsafe { get_state!().time_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_uuid_type() -> *mut PyTypeObject {
-    unsafe { get_state!().uuid_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_enum_type() -> *mut PyTypeObject {
-    unsafe { get_state!().enum_type }
 }
 
 #[inline(always)]
@@ -156,11 +301,6 @@ pub(crate) fn get_field_type() -> *mut PyTypeObject {
 #[inline(always)]
 pub(crate) fn get_zoneinfo_type() -> *mut PyTypeObject {
     unsafe { get_state!().zoneinfo_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_float_type() -> *mut PyTypeObject {
-    unsafe { get_state!().float_type }
 }
 
 #[inline(always)]
@@ -195,21 +335,6 @@ pub(crate) fn get_dst_str() -> *mut PyObject {
 }
 
 #[inline(always)]
-pub(crate) fn get_dict_str() -> *mut PyObject {
-    unsafe { get_state!().dict_str }
-}
-
-#[inline(always)]
-pub(crate) fn get_dataclass_fields_str() -> *mut PyObject {
-    unsafe { get_state!().dataclass_fields_str }
-}
-
-#[inline(always)]
-pub(crate) fn get_slots_str() -> *mut PyObject {
-    unsafe { get_state!().slots_str }
-}
-
-#[inline(always)]
 pub(crate) fn get_field_type_str() -> *mut PyObject {
     unsafe { get_state!().field_type_str }
 }
@@ -228,7 +353,6 @@ pub(crate) fn get_dtype_str() -> *mut PyObject {
 pub(crate) fn get_descr_str() -> *mut PyObject {
     unsafe { get_state!().descr_str }
 }
-
 
 pub(crate) struct NumpyTypes {
     pub array: *mut PyTypeObject,

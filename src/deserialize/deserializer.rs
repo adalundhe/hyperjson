@@ -10,6 +10,12 @@ pub(crate) fn deserialize(
     ptr: *mut crate::ffi::PyObject,
 ) -> Result<NonNull<crate::ffi::PyObject>, DeserializeError<'static>> {
     debug_assert!(ffi!(Py_REFCNT(ptr)) >= 1);
+
+    // Cache interpreter state pointer once at the start of deserialization
+    // This avoids repeated thread-local lookups during deserialization
+    let interpreter_state = unsafe { crate::interpreter_state::get_current_state() };
+    debug_assert!(!interpreter_state.is_null());
+
     let buffer = read_input_to_buf(ptr)?;
     debug_assert!(!buffer.is_empty());
 
@@ -20,11 +26,15 @@ pub(crate) fn deserialize(
         } else if buffer == b"{}" {
             return Ok(nonnull!(ffi!(PyDict_New())));
         } else if buffer == b"\"\"" {
-            unsafe { return Ok(nonnull!(use_immortal!(crate::typeref::get_empty_unicode()))) }
+            unsafe {
+                return Ok(nonnull!(use_immortal!(
+                    crate::typeref::get_empty_unicode_from_state(interpreter_state)
+                )));
+            }
         }
     }
 
     let buffer_str = unsafe { core::str::from_utf8_unchecked(buffer) };
 
-    crate::deserialize::backend::deserialize(buffer_str)
+    crate::deserialize::backend::deserialize(buffer_str, interpreter_state)
 }

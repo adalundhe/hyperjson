@@ -121,9 +121,15 @@ class TestNonStrKeyTests:
         OPT_NON_STR_KEYS has a range of i64::MIN to u64::MAX
         """
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps({-9223372036854775809: True}, option=hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                {-9223372036854775809: True},
+                option=hyperjson.OPT_NON_STR_KEYS,
+            )
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps({18446744073709551616: True}, option=hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                {18446744073709551616: True},
+                option=hyperjson.OPT_NON_STR_KEYS,
+            )
 
     def test_dict_keys_float(self):
         assert (
@@ -133,11 +139,17 @@ class TestNonStrKeyTests:
 
     def test_dict_keys_inf(self):
         assert (
-            hyperjson.dumps({float("Infinity"): True}, option=hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                {float("Infinity"): True},
+                option=hyperjson.OPT_NON_STR_KEYS,
+            )
             == b'{"null":true}'
         )
         assert (
-            hyperjson.dumps({float("-Infinity"): True}, option=hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                {float("-Infinity"): True},
+                option=hyperjson.OPT_NON_STR_KEYS,
+            )
             == b'{"null":true}'
         )
 
@@ -149,7 +161,10 @@ class TestNonStrKeyTests:
 
     def test_dict_keys_bool(self):
         assert (
-            hyperjson.dumps({True: True, False: False}, option=hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                {True: True, False: False},
+                option=hyperjson.OPT_NON_STR_KEYS,
+            )
             == b'{"true":true,"false":false}'
         )
 
@@ -240,7 +255,8 @@ class TestNonStrKeyTests:
 
     def test_dict_keys_str(self):
         assert (
-            hyperjson.dumps({"1": True}, option=hyperjson.OPT_NON_STR_KEYS) == b'{"1":true}'
+            hyperjson.dumps({"1": True}, option=hyperjson.OPT_NON_STR_KEYS)
+            == b'{"1":true}'
         )
 
     def test_dict_keys_type(self):

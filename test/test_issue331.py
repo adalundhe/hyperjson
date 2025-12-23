@@ -336,7 +336,10 @@ def test_issue331_1_pretty():
     as_bytes = read_fixture_bytes("issue331_1.json.xz")
     as_obj = hyperjson.loads(as_bytes)
     for _ in range(1000):
-        assert hyperjson.loads(hyperjson.dumps(as_obj, option=hyperjson.OPT_INDENT_2)) == as_obj
+        assert (
+            hyperjson.loads(hyperjson.dumps(as_obj, option=hyperjson.OPT_INDENT_2))
+            == as_obj
+        )
 
 
 @needs_data
@@ -352,7 +355,10 @@ def test_issue331_2_pretty():
     as_bytes = read_fixture_bytes("issue331_2.json.xz")
     as_obj = hyperjson.loads(as_bytes)
     for _ in range(1000):
-        assert hyperjson.loads(hyperjson.dumps(as_obj, option=hyperjson.OPT_INDENT_2)) == as_obj
+        assert (
+            hyperjson.loads(hyperjson.dumps(as_obj, option=hyperjson.OPT_INDENT_2))
+            == as_obj
+        )
 
 
 @needs_data

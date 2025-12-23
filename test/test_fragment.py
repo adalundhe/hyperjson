@@ -24,7 +24,9 @@ class TestFragment:
         assert hyperjson.dumps(fragment) == b"{}"
 
     def test_fragment_repr(self):
-        assert repr(hyperjson.Fragment(b"{}")).startswith("<hyperjson.Fragment object at ")
+        assert repr(hyperjson.Fragment(b"{}")).startswith(
+            "<hyperjson.Fragment object at ",
+        )
 
     def test_fragment_fragment_bytes(self):
         assert hyperjson.dumps(hyperjson.Fragment(b"{}")) == b"{}"

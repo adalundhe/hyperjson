@@ -22,7 +22,6 @@ fn to_str_via_ffi(op: *mut PyObject) -> Option<&'static str> {
     }
 }
 
-
 #[cfg(all(target_endian = "little", Py_3_14, Py_GIL_DISABLED))]
 const STATE_KIND_SHIFT: usize = 8;
 
@@ -51,7 +50,10 @@ unsafe impl Sync for PyStr {}
 impl PyStr {
     pub unsafe fn from_ptr_unchecked(ptr: *mut PyObject) -> PyStr {
         debug_assert!(!ptr.is_null());
-        debug_assert!(is_class_by_type!(ob_type!(ptr), crate::typeref::get_str_type()));
+        debug_assert!(is_class_by_type!(
+            ob_type!(ptr),
+            crate::typeref::str_type_ptr()
+        ));
         PyStr { ptr: nonnull!(ptr) }
     }
 
@@ -159,7 +161,7 @@ impl PyStrSubclass {
         let ob_type = ob_type!(ptr);
         let tp_flags = tp_flags!(ob_type);
         debug_assert!(!ptr.is_null());
-        debug_assert!(!is_class_by_type!(ob_type, crate::typeref::get_str_type()));
+        debug_assert!(!is_class_by_type!(ob_type, crate::typeref::str_type_ptr()));
         debug_assert!(is_subclass_by_flag!(tp_flags, Py_TPFLAGS_UNICODE_SUBCLASS));
         PyStrSubclass { ptr: nonnull!(ptr) }
     }

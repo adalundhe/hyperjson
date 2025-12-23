@@ -95,7 +95,7 @@ strict = true
 known-first-party = ["hyperjson"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 
 [[tool.mypy.overrides]]
 module = ["dateutil", "pytz"]

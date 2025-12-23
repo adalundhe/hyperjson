@@ -95,7 +95,7 @@ impl Serialize for DictGenericSerializer {
 
 macro_rules! impl_serialize_entry {
     ($map:expr, $self:expr, $key:expr, $value:expr) => {
-        match pyobject_to_obtype($value, $self.state.opts()) {
+        match pyobject_to_obtype($value, $self.state.opts(), $self.state.interpreter_state()) {
             ObType::Str => {
                 $map.serialize_key($key).unwrap();
                 $map.serialize_value(&StrSerializer::new($value))?;
@@ -236,9 +236,9 @@ impl Serialize for Dict {
 
             pydict_next!(self.ptr, &mut pos, &mut next_key, &mut next_value);
 
-            // key
+            // key - use direct CPython global for str type (zero indirection)
             let key_ob_type = ob_type!(key);
-            if !is_class_by_type!(key_ob_type, crate::typeref::get_str_type()) {
+            if !is_class_by_type!(key_ob_type, crate::typeref::str_type_ptr()) {
                 err!(SerializeError::KeyMustBeStr)
             }
             let pystr = unsafe { PyStr::from_ptr_unchecked(key) };
@@ -286,7 +286,8 @@ impl Serialize for DictSortedKey {
 
             pydict_next!(self.ptr, &mut pos, &mut next_key, &mut next_value);
 
-            if unsafe { !core::ptr::eq(ob_type!(key), crate::typeref::get_str_type()) } {
+            // Use direct CPython global for str type (zero indirection)
+            if unsafe { !core::ptr::eq(ob_type!(key), crate::typeref::str_type_ptr()) } {
                 err!(SerializeError::KeyMustBeStr)
             }
             let pystr = unsafe { PyStr::from_ptr_unchecked(key) };
@@ -424,8 +425,9 @@ impl DictNonStrKey {
     fn pyobject_to_string(
         key: *mut crate::ffi::PyObject,
         opts: crate::opt::Opt,
+        interpreter_state: *const crate::interpreter_state::InterpreterState,
     ) -> Result<String, SerializeError> {
-        match pyobject_to_obtype(key, opts) {
+        match pyobject_to_obtype(key, opts, interpreter_state) {
             ObType::None => Ok(String::from("null")),
             ObType::Bool => {
                 if unsafe { core::ptr::eq(key, crate::typeref::get_true()) } {
@@ -443,7 +445,7 @@ impl DictNonStrKey {
             ObType::Enum => {
                 let value = ffi!(PyObject_GetAttr(key, crate::typeref::get_value_str()));
                 debug_assert!(ffi!(Py_REFCNT(value)) >= 2);
-                let ret = Self::pyobject_to_string(value, opts);
+                let ret = Self::pyobject_to_string(value, opts, interpreter_state);
                 ffi!(Py_DECREF(value));
                 ret
             }
@@ -487,7 +489,8 @@ impl Serialize for DictNonStrKey {
 
             pydict_next!(self.ptr, &mut pos, &mut next_key, &mut next_value);
 
-            if is_type!(ob_type!(key), crate::typeref::get_str_type()) {
+            // Use direct CPython global for str type (zero indirection)
+            if is_type!(ob_type!(key), crate::typeref::str_type_ptr()) {
                 match unsafe { PyStr::from_ptr_unchecked(key).to_str() } {
                     Some(uni) => {
                         items.push((String::from(uni), value));
@@ -495,7 +498,7 @@ impl Serialize for DictNonStrKey {
                     None => err!(SerializeError::InvalidStr),
                 }
             } else {
-                match Self::pyobject_to_string(key, opts) {
+                match Self::pyobject_to_string(key, opts, self.state.interpreter_state()) {
                     Ok(key_as_str) => items.push((key_as_str, value)),
                     Err(err) => err!(err),
                 }

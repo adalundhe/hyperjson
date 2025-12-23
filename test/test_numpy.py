@@ -619,16 +619,23 @@ class TestNumpy:
         )
 
     def test_numpy_scalar_int8(self):
-        assert hyperjson.dumps(numpy.int8(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
         assert (
-            hyperjson.dumps(numpy.int8(127), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"127"
+            hyperjson.dumps(numpy.int8(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
         )
         assert (
-            hyperjson.dumps(numpy.int8(-128), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"-128"
+            hyperjson.dumps(numpy.int8(127), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"127"
+        )
+        assert (
+            hyperjson.dumps(numpy.int8(-128), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"-128"
         )
 
     def test_numpy_scalar_int16(self):
-        assert hyperjson.dumps(numpy.int16(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
+        assert (
+            hyperjson.dumps(numpy.int16(0), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"0"
+        )
         assert (
             hyperjson.dumps(numpy.int16(32767), option=hyperjson.OPT_SERIALIZE_NUMPY)
             == b"32767"
@@ -639,13 +646,22 @@ class TestNumpy:
         )
 
     def test_numpy_scalar_int32(self):
-        assert hyperjson.dumps(numpy.int32(1), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"1"
         assert (
-            hyperjson.dumps(numpy.int32(2147483647), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(numpy.int32(1), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"1"
+        )
+        assert (
+            hyperjson.dumps(
+                numpy.int32(2147483647),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b"2147483647"
         )
         assert (
-            hyperjson.dumps(numpy.int32(-2147483648), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                numpy.int32(-2147483648),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b"-2147483648"
         )
 
@@ -666,27 +682,43 @@ class TestNumpy:
         )
 
     def test_numpy_scalar_uint8(self):
-        assert hyperjson.dumps(numpy.uint8(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
         assert (
-            hyperjson.dumps(numpy.uint8(255), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"255"
+            hyperjson.dumps(numpy.uint8(0), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"0"
+        )
+        assert (
+            hyperjson.dumps(numpy.uint8(255), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"255"
         )
 
     def test_numpy_scalar_uint16(self):
-        assert hyperjson.dumps(numpy.uint16(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
+        assert (
+            hyperjson.dumps(numpy.uint16(0), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"0"
+        )
         assert (
             hyperjson.dumps(numpy.uint16(65535), option=hyperjson.OPT_SERIALIZE_NUMPY)
             == b"65535"
         )
 
     def test_numpy_scalar_uint32(self):
-        assert hyperjson.dumps(numpy.uint32(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
         assert (
-            hyperjson.dumps(numpy.uint32(4294967295), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(numpy.uint32(0), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"0"
+        )
+        assert (
+            hyperjson.dumps(
+                numpy.uint32(4294967295),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b"4294967295"
         )
 
     def test_numpy_scalar_uint64(self):
-        assert hyperjson.dumps(numpy.uint64(0), option=hyperjson.OPT_SERIALIZE_NUMPY) == b"0"
+        assert (
+            hyperjson.dumps(numpy.uint64(0), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            == b"0"
+        )
         assert (
             hyperjson.dumps(
                 numpy.uint64(18446744073709551615),
@@ -709,7 +741,10 @@ class TestNumpy:
 
     def test_numpy_scalar_float64(self):
         assert (
-            hyperjson.dumps(numpy.float64(123.123), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                numpy.float64(123.123),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b"123.123"
         )
 
@@ -724,13 +759,19 @@ class TestNumpy:
 
     def test_numpy_datetime_year(self):
         assert (
-            hyperjson.dumps(numpy.datetime64("2021"), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                numpy.datetime64("2021"),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b'"2021-01-01T00:00:00"'
         )
 
     def test_numpy_datetime_month(self):
         assert (
-            hyperjson.dumps(numpy.datetime64("2021-01"), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                numpy.datetime64("2021-01"),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
             == b'"2021-01-01T00:00:00"'
         )
 
@@ -1060,9 +1101,15 @@ class TestNumpy:
 
     def test_numpy_datetime_nat(self):
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps(numpy.datetime64("NaT"), option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                numpy.datetime64("NaT"),
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps([numpy.datetime64("NaT")], option=hyperjson.OPT_SERIALIZE_NUMPY)
+            hyperjson.dumps(
+                [numpy.datetime64("NaT")],
+                option=hyperjson.OPT_SERIALIZE_NUMPY,
+            )
 
     def test_numpy_repeated(self):
         data = numpy.array([[[1, 2], [3, 4], [5, 6], [7, 8]]], numpy.int64)  # type: ignore
@@ -1079,7 +1126,10 @@ class TestNumpy:
 @pytest.mark.skipif(numpy is None, reason="numpy is not installed")
 class TestNumpyEquivalence:
     def _test(self, obj):
-        assert hyperjson.dumps(obj, option=hyperjson.OPT_SERIALIZE_NUMPY) == hyperjson.dumps(
+        assert hyperjson.dumps(
+            obj,
+            option=hyperjson.OPT_SERIALIZE_NUMPY,
+        ) == hyperjson.dumps(
             obj.tolist(),
         )
 

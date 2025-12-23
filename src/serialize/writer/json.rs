@@ -568,7 +568,6 @@ macro_rules! reserve_str {
     };
 }
 
-
 #[cfg(all(target_arch = "x86_64", not(feature = "avx512")))]
 #[inline(always)]
 fn format_escaped_str<W>(writer: &mut W, value: &str)

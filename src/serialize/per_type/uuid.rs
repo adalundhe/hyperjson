@@ -24,7 +24,10 @@ impl UUID {
         let value: u128;
         {
             // test_uuid_immutable, test_uuid_int
-            let py_int = ffi!(PyObject_GetAttr(self.ptr, crate::typeref::get_int_attr_str()));
+            let py_int = ffi!(PyObject_GetAttr(
+                self.ptr,
+                crate::typeref::get_int_attr_str()
+            ));
             ffi!(Py_DECREF(py_int));
             let mut buffer: [c_uchar; 16] = [0; 16];
             unsafe {

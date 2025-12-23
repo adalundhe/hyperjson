@@ -24,14 +24,20 @@ class TestIndentedOutput:
     def test_sort(self):
         obj = {"b": 1, "a": 2}
         assert (
-            hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_SORT_KEYS)
+            hyperjson.dumps(
+                obj,
+                option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_SORT_KEYS,
+            )
             == b'{\n  "a": 2,\n  "b": 1\n}'
         )
 
     def test_non_str(self):
         obj = {1: 1, "a": 2}
         assert (
-            hyperjson.dumps(obj, option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_NON_STR_KEYS)
+            hyperjson.dumps(
+                obj,
+                option=hyperjson.OPT_INDENT_2 | hyperjson.OPT_NON_STR_KEYS,
+            )
             == b'{\n  "1": 1,\n  "a": 2\n}'
         )
 

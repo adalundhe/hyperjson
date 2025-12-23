@@ -37,7 +37,9 @@ sys.stdout.flush()
 
 def test_func(n):
     try:
-        assert sorted(hyperjson.loads(hyperjson.dumps(DATA)), key=itemgetter("id")) == DATA
+        assert (
+            sorted(hyperjson.loads(hyperjson.dumps(DATA)), key=itemgetter("id")) == DATA
+        )
     except Exception:
         traceback.print_exc()
         print(f"thread {get_ident()}: {n} dumps, loads ERROR")

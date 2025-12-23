@@ -183,7 +183,11 @@ impl DateTimeLike for DateTime {
     #[inline(never)]
     fn slow_offset(&self) -> Result<Offset, DateTimeError> {
         let tzinfo = ffi!(PyDateTime_DATE_GET_TZINFO(self.ptr));
-        if ffi!(PyObject_HasAttr(tzinfo, crate::typeref::get_convert_method_str())) == 1 {
+        if ffi!(PyObject_HasAttr(
+            tzinfo,
+            crate::typeref::get_convert_method_str()
+        )) == 1
+        {
             // pendulum
             let py_offset = call_method!(self.ptr, crate::typeref::get_utcoffset_method_str());
             let offset = Offset {
@@ -192,9 +196,14 @@ impl DateTimeLike for DateTime {
             };
             ffi!(Py_DECREF(py_offset));
             Ok(offset)
-        } else if ffi!(PyObject_HasAttr(tzinfo, crate::typeref::get_normalize_method_str())) == 1 {
+        } else if ffi!(PyObject_HasAttr(
+            tzinfo,
+            crate::typeref::get_normalize_method_str()
+        )) == 1
+        {
             // pytz
-            let method_ptr = call_method!(tzinfo, crate::typeref::get_normalize_method_str(), self.ptr);
+            let method_ptr =
+                call_method!(tzinfo, crate::typeref::get_normalize_method_str(), self.ptr);
             let py_offset = call_method!(method_ptr, crate::typeref::get_utcoffset_method_str());
             ffi!(Py_DECREF(method_ptr));
             let offset = Offset {
@@ -205,7 +214,8 @@ impl DateTimeLike for DateTime {
             Ok(offset)
         } else if ffi!(PyObject_HasAttr(tzinfo, crate::typeref::get_dst_str())) == 1 {
             // dateutil/arrow, datetime.timezone.utc
-            let py_offset = call_method!(tzinfo, crate::typeref::get_utcoffset_method_str(), self.ptr);
+            let py_offset =
+                call_method!(tzinfo, crate::typeref::get_utcoffset_method_str(), self.ptr);
             let offset = Offset {
                 second: ffi!(PyDateTime_DELTA_GET_SECONDS(py_offset)),
                 day: ffi!(PyDateTime_DELTA_GET_DAYS(py_offset)),
@@ -225,7 +235,8 @@ impl DateTimeLike for DateTime {
             let tzinfo = ffi!(PyDateTime_DATE_GET_TZINFO(self.ptr));
             if unsafe { core::ptr::eq(ob_type!(tzinfo), crate::typeref::get_zoneinfo_type()) } {
                 // zoneinfo
-                let py_offset = call_method!(tzinfo, crate::typeref::get_utcoffset_method_str(), self.ptr);
+                let py_offset =
+                    call_method!(tzinfo, crate::typeref::get_utcoffset_method_str(), self.ptr);
                 let offset = Offset {
                     second: ffi!(PyDateTime_DELTA_GET_SECONDS(py_offset)),
                     day: ffi!(PyDateTime_DELTA_GET_DAYS(py_offset)),

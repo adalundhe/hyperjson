@@ -48,7 +48,7 @@ impl ListTupleSerializer {
         default: Option<NonNull<crate::ffi::PyObject>>,
     ) -> Self {
         debug_assert!(
-            is_type!(ob_type!(ptr), crate::typeref::get_list_type())
+            is_type!(ob_type!(ptr), crate::typeref::list_type_ptr())
                 || is_subclass_by_flag!(tp_flags!(ob_type!(ptr)), Py_TPFLAGS_LIST_SUBCLASS)
         );
         let data_ptr = unsafe { (*ptr.cast::<crate::ffi::PyListObject>()).ob_item };
@@ -67,7 +67,7 @@ impl ListTupleSerializer {
         default: Option<NonNull<crate::ffi::PyObject>>,
     ) -> Self {
         debug_assert!(
-            is_type!(ob_type!(ptr), crate::typeref::get_tuple_type())
+            is_type!(ob_type!(ptr), crate::typeref::tuple_type_ptr())
                 || is_subclass_by_flag!(tp_flags!(ob_type!(ptr)), Py_TPFLAGS_TUPLE_SUBCLASS)
         );
         let data_ptr = unsafe { (*ptr.cast::<crate::ffi::PyTupleObject>()).ob_item.as_ptr() };
@@ -95,7 +95,7 @@ impl Serialize for ListTupleSerializer {
         let mut seq = serializer.serialize_seq(None).unwrap();
         for idx in 0..self.len {
             let value = unsafe { *((self.data_ptr).add(idx)) };
-            match pyobject_to_obtype(value, self.state.opts()) {
+            match pyobject_to_obtype(value, self.state.opts(), self.state.interpreter_state()) {
                 ObType::Str => {
                     seq.serialize_element(&StrSerializer::new(value))?;
                 }

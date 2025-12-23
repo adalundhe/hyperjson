@@ -11,10 +11,9 @@ import time
 from timeit import timeit
 
 import numpy as np
+import orjson
 import psutil
 from tabulate import tabulate
-
-import orjson
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})

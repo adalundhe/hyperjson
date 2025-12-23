@@ -106,8 +106,14 @@ class TestSubclassPassthrough:
 
     def test_subclass_dict(self):
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps(SubDict({"a": "b"}), option=hyperjson.OPT_PASSTHROUGH_SUBCLASS)
+            hyperjson.dumps(
+                SubDict({"a": "b"}),
+                option=hyperjson.OPT_PASSTHROUGH_SUBCLASS,
+            )
 
     def test_subclass_list(self):
         with pytest.raises(hyperjson.JSONEncodeError):
-            hyperjson.dumps(SubList(["a", "b"]), option=hyperjson.OPT_PASSTHROUGH_SUBCLASS)
+            hyperjson.dumps(
+                SubList(["a", "b"]),
+                option=hyperjson.OPT_PASSTHROUGH_SUBCLASS,
+            )

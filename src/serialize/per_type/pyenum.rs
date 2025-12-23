@@ -22,7 +22,10 @@ impl Serialize for EnumSerializer<'_> {
     where
         S: Serializer,
     {
-        let value = ffi!(PyObject_GetAttr(self.previous.ptr, crate::typeref::get_value_str()));
+        let value = ffi!(PyObject_GetAttr(
+            self.previous.ptr,
+            crate::typeref::get_value_str()
+        ));
         debug_assert!(ffi!(Py_REFCNT(value)) >= 2);
         let ret = PyObjectSerializer::new(value, self.previous.state, self.previous.default)
             .serialize(serializer);

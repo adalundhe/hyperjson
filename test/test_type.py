@@ -75,7 +75,9 @@ class TestType:
         """
         ref = "\x01\x1f" * 1024 * 16
         assert hyperjson.loads(hyperjson.dumps(ref)) == ref
-        assert hyperjson.loads(hyperjson.dumps(ref, option=hyperjson.OPT_INDENT_2)) == ref
+        assert (
+            hyperjson.loads(hyperjson.dumps(ref, option=hyperjson.OPT_INDENT_2)) == ref
+        )
 
     def test_str_escape_quote_0(self):
         assert hyperjson.dumps('"aaaaaaabb') == b'"\\"aaaaaaabb"'
@@ -255,7 +257,11 @@ class TestType:
         pytest.raises(hyperjson.JSONEncodeError, hyperjson.dumps, "\ud800")
         pytest.raises(hyperjson.JSONEncodeError, hyperjson.dumps, "\ud83d\ude80")
         pytest.raises(hyperjson.JSONEncodeError, hyperjson.dumps, "\udcff")
-        pytest.raises(hyperjson.JSONEncodeError, hyperjson.dumps, {"\ud83d\ude80": None})
+        pytest.raises(
+            hyperjson.JSONEncodeError,
+            hyperjson.dumps,
+            {"\ud83d\ude80": None},
+        )
         pytest.raises(
             hyperjson.JSONEncodeError,
             hyperjson.dumps,

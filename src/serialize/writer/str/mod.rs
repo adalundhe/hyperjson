@@ -15,7 +15,6 @@ mod sse2;
 #[cfg(all(not(target_arch = "x86_64"), not(feature = "generic_simd")))]
 pub(crate) use scalar::format_escaped_str_scalar;
 
-
 #[allow(unused_imports)]
 #[cfg(target_arch = "x86_64")]
 pub(crate) use sse2::format_escaped_str_impl_sse2_128;

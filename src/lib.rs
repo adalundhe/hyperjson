@@ -93,9 +93,10 @@ use crate::exception::{
     raise_dumps_exception_dynamic, raise_dumps_exception_fixed, raise_loads_exception,
 };
 use crate::ffi::{
-    METH_KEYWORDS, METH_O, Py_SIZE, Py_ssize_t, PyCFunction_NewEx, PyLong_AsLong, PyMethodDef,
-    PyMethodDefPointer, PyModuleDef, PyModuleDef_HEAD_INIT, PyModuleDef_Slot, PyObject,
-    PyUnicode_FromStringAndSize, PyUnicode_InternFromString, PyVectorcall_NARGS,
+    METH_KEYWORDS, METH_O, Py_SIZE, Py_ssize_t, PyCFunction_NewEx, PyErr_Clear, PyErr_Occurred,
+    PyLong_AsLong, PyMethodDef, PyMethodDefPointer, PyModuleDef, PyModuleDef_HEAD_INIT,
+    PyModuleDef_Slot, PyObject, PyUnicode_FromStringAndSize, PyUnicode_InternFromString,
+    PyVectorcall_NARGS,
 };
 use crate::serialize::serialize;
 use crate::util::{isize_to_usize, usize_to_isize};
@@ -191,7 +192,11 @@ pub(crate) unsafe extern "C" fn orjson_init_exec(mptr: *mut PyObject) -> c_int {
             add!(mptr, c"loads", func);
         }
 
-        add!(mptr, c"Fragment", typeref::get_fragment_type().cast::<PyObject>());
+        add!(
+            mptr,
+            c"Fragment",
+            typeref::get_fragment_type().cast::<PyObject>()
+        );
 
         opt!(mptr, c"OPT_APPEND_NEWLINE", opt::APPEND_NEWLINE);
         opt!(mptr, c"OPT_INDENT_2", opt::INDENT_2);
@@ -223,7 +228,7 @@ pub(crate) unsafe extern "C" fn orjson_init_exec(mptr: *mut PyObject) -> c_int {
 #[unsafe(no_mangle)]
 #[cold]
 #[cfg_attr(feature = "optimize", optimize(size))]
-pub(crate) unsafe extern "C" fn PyInit_orjson() -> *mut PyModuleDef {
+pub(crate) unsafe extern "C" fn PyInit_hyperjson() -> *mut PyModuleDef {
     #[cfg(not(Py_3_12))]
     const PYMODULEDEF_LEN: usize = 2;
     #[cfg(all(Py_3_12, not(Py_3_13)))]
@@ -344,13 +349,24 @@ pub(crate) unsafe extern "C" fn dumps(
         let mut optsbits: i32 = 0;
         if let Some(opts) = optsptr {
             cold_path!();
-            if core::ptr::eq((*opts.as_ptr()).ob_type, typeref::get_int_type()) {
-                #[allow(clippy::cast_possible_truncation)]
-                let tmp = PyLong_AsLong(optsptr.unwrap().as_ptr()) as i32; // stmt_expr_attributes
-                optsbits = tmp;
-                if !(0..=opt::MAX_OPT).contains(&optsbits) {
-                    cold_path!();
-                    return raise_dumps_exception_fixed("Invalid opts");
+            // Use direct CPython global for int type (zero indirection)
+            if core::ptr::eq((*opts.as_ptr()).ob_type, typeref::int_type_ptr()) {
+                unsafe {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let tmp = PyLong_AsLong(optsptr.unwrap().as_ptr()) as i32; // stmt_expr_attributes
+                    // Check for errors from PyLong_AsLong (e.g., overflow)
+                    // -1 can be a valid return value, but we check PyErr_Occurred to distinguish
+                    // between a legitimate -1 and an error. Since valid option values are 0..=MAX_OPT,
+                    // -1 is never valid, so we can check both conditions.
+                    if tmp == -1 && !PyErr_Occurred().is_null() {
+                        PyErr_Clear();
+                        return raise_dumps_exception_fixed("Invalid opts");
+                    }
+                    optsbits = tmp;
+                    if !(0..=opt::MAX_OPT).contains(&optsbits) {
+                        cold_path!();
+                        return raise_dumps_exception_fixed("Invalid opts");
+                    }
                 }
             } else if !core::ptr::eq(opts.as_ptr(), typeref::get_none()) {
                 cold_path!();

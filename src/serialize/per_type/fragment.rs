@@ -37,7 +37,8 @@ impl Serialize for FragmentSerializer {
                     PyBytes_AS_STRING((*fragment).contents).cast::<u8>(),
                     isize_to_usize(PyBytes_GET_SIZE((*fragment).contents)),
                 );
-            } else if core::ptr::eq(ob_type, crate::typeref::get_str_type()) {
+            // Use direct CPython global for str type (zero indirection)
+            } else if core::ptr::eq(ob_type, crate::typeref::str_type_ptr()) {
                 match unsafe { PyStr::from_ptr_unchecked((*fragment).contents).to_str() } {
                     Some(uni) => buffer = uni.as_bytes(),
                     None => err!(SerializeError::InvalidStr),

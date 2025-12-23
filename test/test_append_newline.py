@@ -19,7 +19,10 @@ class TestAppendNewline:
         loads(),dumps() twitter.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("twitter.json.xz")
-        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
+        assert (
+            hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE))
+            == val
+        )
 
     @needs_data
     def test_canada(self):
@@ -27,7 +30,10 @@ class TestAppendNewline:
         loads(), dumps() canada.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("canada.json.xz")
-        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
+        assert (
+            hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE))
+            == val
+        )
 
     @needs_data
     def test_citm_catalog_newline(self):
@@ -35,7 +41,10 @@ class TestAppendNewline:
         loads(), dumps() citm_catalog.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("citm_catalog.json.xz")
-        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
+        assert (
+            hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE))
+            == val
+        )
 
     @needs_data
     def test_github_newline(self):
@@ -43,4 +52,7 @@ class TestAppendNewline:
         loads(), dumps() github.json OPT_APPEND_NEWLINE
         """
         val = read_fixture_obj("github.json.xz")
-        assert hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE)) == val
+        assert (
+            hyperjson.loads(hyperjson.dumps(val, option=hyperjson.OPT_APPEND_NEWLINE))
+            == val
+        )

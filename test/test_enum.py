@@ -117,5 +117,6 @@ class TestEnum:
             == b'{"aaa":1}'
         )
         assert (
-            hyperjson.dumps({IntEnum.ONE: 1}, option=hyperjson.OPT_NON_STR_KEYS) == b'{"1":1}'
+            hyperjson.dumps({IntEnum.ONE: 1}, option=hyperjson.OPT_NON_STR_KEYS)
+            == b'{"1":1}'
         )

@@ -9,9 +9,8 @@ import lzma
 import os
 from pathlib import Path
 
-from tabulate import tabulate
-
 import orjson
+from tabulate import tabulate
 
 dirname = os.path.join(os.path.dirname(__file__), "..", "data")
 

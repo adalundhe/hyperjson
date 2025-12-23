@@ -28,6 +28,52 @@ use crate::ffi::{
 unsafe impl Send for InterpreterState {}
 unsafe impl Sync for InterpreterState {}
 
+/// Pre-allocated buffer for yyjson parsing to avoid malloc/free overhead
+/// Uses a simple pool with configurable size tiers
+pub(crate) struct ParseBuffer {
+    pub ptr: *mut core::ffi::c_void,
+    pub capacity: usize,
+}
+
+impl ParseBuffer {
+    pub fn new() -> Self {
+        ParseBuffer {
+            ptr: null_mut(),
+            capacity: 0,
+        }
+    }
+
+    /// Ensure buffer has at least the required capacity
+    /// Returns the buffer pointer and actual capacity
+    #[inline]
+    pub unsafe fn ensure_capacity(&mut self, required: usize) -> (*mut core::ffi::c_void, usize) {
+        unsafe {
+            if self.capacity >= required {
+                (self.ptr, self.capacity)
+            } else {
+                // Free old buffer if exists
+                if !self.ptr.is_null() {
+                    crate::ffi::PyMem_Free(self.ptr);
+                }
+                // Allocate new buffer with some headroom (round up to next power of 2 or 4KB minimum)
+                let new_capacity = required.next_power_of_two().max(4096);
+                let new_ptr = crate::ffi::PyMem_Malloc(new_capacity);
+                self.ptr = new_ptr;
+                self.capacity = if new_ptr.is_null() { 0 } else { new_capacity };
+                (self.ptr, self.capacity)
+            }
+        }
+    }
+}
+
+impl Drop for ParseBuffer {
+    fn drop(&mut self) {
+        if !self.ptr.is_null() {
+            unsafe { crate::ffi::PyMem_Free(self.ptr) };
+        }
+    }
+}
+
 pub(crate) struct InterpreterState {
     // Keyword argument strings
     pub default: *mut PyObject,
@@ -83,6 +129,10 @@ pub(crate) struct InterpreterState {
     // Safe because GIL ensures single-threaded access within an interpreter
     #[cfg(not(Py_GIL_DISABLED))]
     pub key_map: core::cell::UnsafeCell<KeyMap>,
+
+    // Pre-allocated buffer for yyjson parsing - avoids malloc/free per parse
+    // Safe because GIL ensures single-threaded access
+    pub parse_buffer: core::cell::UnsafeCell<ParseBuffer>,
 }
 
 unsafe fn look_up_type_object(module_name: &CStr, member_name: &CStr) -> *mut PyTypeObject {
@@ -182,6 +232,7 @@ impl InterpreterState {
                 json_decode_error: null_mut(),
                 #[cfg(not(Py_GIL_DISABLED))]
                 key_map: core::cell::UnsafeCell::new(KeyMap::default()),
+                parse_buffer: core::cell::UnsafeCell::new(ParseBuffer::new()),
             };
 
             state.none_type = unsafe { (*state.none).ob_type };
@@ -205,7 +256,8 @@ impl InterpreterState {
             state.convert_method_str = PyUnicode_InternFromString(c"convert".as_ptr());
             state.dst_str = PyUnicode_InternFromString(c"dst".as_ptr());
             state.dict_str = PyUnicode_InternFromString(c"__dict__".as_ptr());
-            state.dataclass_fields_str = PyUnicode_InternFromString(c"__dataclass_fields__".as_ptr());
+            state.dataclass_fields_str =
+                PyUnicode_InternFromString(c"__dataclass_fields__".as_ptr());
             state.slots_str = PyUnicode_InternFromString(c"__slots__".as_ptr());
             state.field_type_str = PyUnicode_InternFromString(c"_field_type".as_ptr());
             state.array_struct_str = PyUnicode_InternFromString(c"__array_struct__".as_ptr());
@@ -236,8 +288,7 @@ impl InterpreterState {
 /// Global registry of interpreter states, keyed by module pointer (as usize for Send+Sync).
 /// Each interpreter has its own module instance, so we use the module pointer as the key.
 /// Using usize is safe because we only compare pointers, never dereference them.
-static INTERPRETER_STATES: OnceLock<Mutex<HashMap<usize, Box<InterpreterState>>>> =
-    OnceLock::new();
+static INTERPRETER_STATES: OnceLock<Mutex<HashMap<usize, Box<InterpreterState>>>> = OnceLock::new();
 
 /// Get or create the interpreter state for the given module.
 /// The module pointer uniquely identifies the interpreter.
@@ -261,72 +312,49 @@ pub(crate) unsafe fn get_or_init_state(module: *mut PyObject) -> *const Interpre
 }
 
 thread_local! {
-    // Cache just the state pointer for fastest access. Use null_mut() as sentinel for "not cached"
-    static CACHED_STATE: std::cell::Cell<*const InterpreterState> = 
-        std::cell::Cell::new(null_mut());
-    // Also cache the module pointer to keep it alive (prevents garbage collection)
-    static CACHED_MODULE: std::cell::Cell<*mut PyObject> = 
-        std::cell::Cell::new(null_mut());
+    // Cache just the state pointer for fastest access
+    static CACHED_STATE: std::cell::Cell<*const InterpreterState> =
+        const { std::cell::Cell::new(null_mut()) };
+    // Also cache the module pointer to keep it alive
+    static CACHED_MODULE: std::cell::Cell<*mut PyObject> =
+        const { std::cell::Cell::new(null_mut()) };
 }
 
 /// Get the current interpreter's state, using thread-local cache for performance.
-/// This imports the hyperjson module if not cached.
-/// 
-/// Optimized hot path: validate cached state belongs to current interpreter.
-/// In subinterpreter scenarios, the same OS thread may be reused across interpreters,
-/// so we must always validate that the cached module belongs to the current interpreter.
 #[inline(always)]
 pub(crate) unsafe fn get_current_state() -> *const InterpreterState {
-    unsafe {
-        // Fast path: check cache first (cheap thread-local reads)
-        let cached_state = CACHED_STATE.with(|cell| cell.get());
-        let cached_module = CACHED_MODULE.with(|cell| cell.get());
-        
-        // If we have a cached state, validate it by importing the current module
-        // PyImport_ImportModule is fast for already-imported modules (dict lookup)
-        if !cached_state.is_null() && !cached_module.is_null() {
-            let module = PyImport_ImportModule(c"hyperjson".as_ptr());
-            if module.is_null() {
-                // This shouldn't happen, but if it does, we'll crash
-                core::hint::unreachable_unchecked();
-            }
-            
-            // Validate: module pointers match (same interpreter)
-            if cached_module == module {
-                // Cache hit: current interpreter matches cached one
-                // DECREF the module we just imported since we're using the cached state
-                Py_DECREF(module);
-                return cached_state;
-            }
-            
-            // Interpreter mismatch: DECREF the module and fall through to cache miss path
-            Py_DECREF(module);
+    CACHED_STATE.with(|cell| {
+        let cached_state = cell.get();
+        if !cached_state.is_null() {
+            cached_state
+        } else {
+            unsafe { get_current_state_slow(cell) }
         }
+    })
+}
 
-        // Cache miss or interpreter mismatch: import module and get state for current interpreter
+#[inline(never)]
+#[cold]
+unsafe fn get_current_state_slow(
+    cache_cell: &std::cell::Cell<*const InterpreterState>,
+) -> *const InterpreterState {
+    unsafe {
         let module = PyImport_ImportModule(c"hyperjson".as_ptr());
         if module.is_null() {
-            // This shouldn't happen, but if it does, we'll crash
             core::hint::unreachable_unchecked();
         }
         let state = get_or_init_state(module);
-        
-        // Update cache with current interpreter's state and module
-        // DECREF the old cached module if it exists (interpreter switch case)
-        let old_cached_module = CACHED_MODULE.with(|cell| {
-            let old = cell.get();
-            cell.set(module);
-            old
+
+        // Update cache - DECREF old module if switching interpreters
+        CACHED_MODULE.with(|mod_cell| {
+            let old_module = mod_cell.get();
+            if !old_module.is_null() && old_module != module {
+                Py_DECREF(old_module);
+            }
+            mod_cell.set(module);
         });
-        if !old_cached_module.is_null() && old_cached_module != module {
-            // Old module from a different interpreter - release the reference
-            Py_DECREF(old_cached_module);
-        }
-        CACHED_STATE.with(|cell| cell.set(state));
-        
-        // Don't DECREF the new module - we're keeping it alive for the cache
-        // The module will be cleaned up when the interpreter is destroyed
+
+        cache_cell.set(state);
         state
     }
 }
-

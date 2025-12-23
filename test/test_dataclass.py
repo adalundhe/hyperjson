@@ -281,7 +281,11 @@ class TestDataclassPassthrough:
         """
         obj = Dataclass1("a", 1, None)
         assert (
-            hyperjson.dumps(obj, option=hyperjson.OPT_PASSTHROUGH_DATACLASS, default=asdict)
+            hyperjson.dumps(
+                obj,
+                option=hyperjson.OPT_PASSTHROUGH_DATACLASS,
+                default=asdict,
+            )
             == b'{"name":"a","number":1,"sub":null}'
         )
 
@@ -291,7 +295,11 @@ class TestDataclassPassthrough:
             raise TypeError
 
         assert (
-            hyperjson.dumps(obj, option=hyperjson.OPT_PASSTHROUGH_DATACLASS, default=default)
+            hyperjson.dumps(
+                obj,
+                option=hyperjson.OPT_PASSTHROUGH_DATACLASS,
+                default=default,
+            )
             == b'{"name":"a","number":1}'
         )
 

@@ -39,7 +39,10 @@ impl core::fmt::Display for SerializeError {
             SerializeError::Integer64Bits => write!(f, "Integer exceeds 64-bit range"),
             SerializeError::InvalidStr => write!(f, "{}", crate::util::INVALID_STR),
             SerializeError::InvalidFragment => {
-                write!(f, "orjson.Fragment's content is not of type bytes or str")
+                write!(
+                    f,
+                    "hyperjson.Fragment's content is not of type bytes or str"
+                )
             }
             SerializeError::KeyMustBeStr => write!(f, "Dict key must be str"),
             SerializeError::RecursionLimit => write!(f, "Recursion limit reached"),

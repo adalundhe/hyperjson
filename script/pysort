@@ -9,9 +9,8 @@ import os
 from pathlib import Path
 from timeit import timeit
 
-from tabulate import tabulate
-
 import orjson
+from tabulate import tabulate
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})

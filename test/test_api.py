@@ -219,7 +219,12 @@ class TestApi:
         dumps() option twice
         """
         with pytest.raises(TypeError):
-            hyperjson.dumps({}, None, hyperjson.OPT_NAIVE_UTC, option=hyperjson.OPT_NAIVE_UTC)  # type: ignore
+            hyperjson.dumps(
+                {},
+                None,
+                hyperjson.OPT_NAIVE_UTC,
+                option=hyperjson.OPT_NAIVE_UTC,
+            )  # type: ignore
 
     def test_option_mixed(self):
         """

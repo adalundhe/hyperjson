@@ -39,7 +39,8 @@ pub(crate) fn read_input_to_buf(
 ) -> Result<&'static [u8], DeserializeError<'static>> {
     let obj_type_ptr = ob_type!(ptr);
     let buffer: &[u8];
-    if is_type!(obj_type_ptr, crate::typeref::get_bytes_type()) {
+    // Use direct CPython globals for type checks (zero indirection)
+    if is_type!(obj_type_ptr, crate::typeref::bytes_type_ptr()) {
         buffer = unsafe {
             core::slice::from_raw_parts(
                 PyBytes_AS_STRING(ptr).cast::<u8>(),
@@ -49,7 +50,7 @@ pub(crate) fn read_input_to_buf(
         if !is_valid_utf8(buffer) {
             return Err(DeserializeError::invalid(Cow::Borrowed(INVALID_STR)));
         }
-    } else if is_type!(obj_type_ptr, crate::typeref::get_str_type()) {
+    } else if is_type!(obj_type_ptr, crate::typeref::str_type_ptr()) {
         let pystr = unsafe { PyStr::from_ptr_unchecked(ptr) };
         let uni = pystr.to_str();
         if uni.is_none() {
@@ -57,7 +58,7 @@ pub(crate) fn read_input_to_buf(
         }
         let as_str = uni.unwrap();
         buffer = unsafe { core::slice::from_raw_parts(as_str.as_ptr(), as_str.len()) };
-    } else if is_type!(obj_type_ptr, crate::typeref::get_memoryview_type()) {
+    } else if is_type!(obj_type_ptr, crate::typeref::memoryview_type_ptr()) {
         cold_path!();
         let membuf = unsafe { PyMemoryView_GET_BUFFER(ptr) };
         if unsafe { crate::ffi::PyBuffer_IsContiguous(membuf, b'C' as c_char) == 0 } {
@@ -74,7 +75,7 @@ pub(crate) fn read_input_to_buf(
         if !is_valid_utf8(buffer) {
             return Err(DeserializeError::invalid(Cow::Borrowed(INVALID_STR)));
         }
-    } else if is_type!(obj_type_ptr, crate::typeref::get_bytearray_type()) {
+    } else if is_type!(obj_type_ptr, crate::typeref::bytearray_type_ptr()) {
         cold_path!();
         buffer = unsafe {
             core::slice::from_raw_parts(

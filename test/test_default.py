@@ -62,7 +62,9 @@ class TestType:
         def default(obj):
             return str(obj)
 
-        assert hyperjson.dumps(ref, default=default) == b'"%s"' % str(ref).encode("utf-8")
+        assert hyperjson.dumps(ref, default=default) == b'"%s"' % str(ref).encode(
+            "utf-8",
+        )
 
     def test_default_func_none(self):
         """
@@ -213,7 +215,9 @@ class TestType:
         dumps() default lambda
         """
         ref = Custom()
-        assert hyperjson.dumps(ref, default=lambda x: str(x)) == b'"%s"' % str(ref).encode(
+        assert hyperjson.dumps(ref, default=lambda x: str(x)) == b'"%s"' % str(
+            ref,
+        ).encode(
             "utf-8",
         )
 

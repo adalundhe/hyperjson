@@ -60,7 +60,7 @@ impl Serialize for PyObjectSerializer {
     where
         S: Serializer,
     {
-        match pyobject_to_obtype(self.ptr, self.state.opts()) {
+        match pyobject_to_obtype(self.ptr, self.state.opts(), self.state.interpreter_state()) {
             ObType::Str => StrSerializer::new(self.ptr).serialize(serializer),
             ObType::StrSubclass => StrSubclassSerializer::new(self.ptr).serialize(serializer),
             ObType::Int => IntSerializer::new(self.ptr, self.state.opts()).serialize(serializer),
