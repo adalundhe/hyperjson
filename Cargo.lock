@@ -75,6 +75,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyperjson"
+version = "3.11.5"
+dependencies = [
+ "associative-cache",
+ "bytecount",
+ "bytes",
+ "cc",
+ "encoding_rs",
+ "half",
+ "itoa",
+ "itoap",
+ "jiff",
+ "once_cell",
+ "pyo3-build-config",
+ "pyo3-ffi",
+ "ryu",
+ "serde",
+ "serde_json",
+ "simdutf8",
+ "smallvec",
+ "unwinding",
+ "uuid",
+ "version_check",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,33 +152,6 @@ name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
-
-[[package]]
-name = "orjson"
-version = "3.11.5"
-dependencies = [
- "associative-cache",
- "bytecount",
- "bytes",
- "cc",
- "encoding_rs",
- "half",
- "itoa",
- "itoap",
- "jiff",
- "once_cell",
- "pyo3-build-config",
- "pyo3-ffi",
- "ryu",
- "serde",
- "serde_json",
- "simdutf8",
- "smallvec",
- "unwinding",
- "uuid",
- "version_check",
- "xxhash-rust",
-]
 
 [[package]]
 name = "portable-atomic"

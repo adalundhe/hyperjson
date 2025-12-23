@@ -3,7 +3,6 @@
 
 use crate::str::PyStr;
 use associative_cache::{AssociativeCache, Capacity2048, HashDirectMapped, RoundRobinReplacement};
-use core::cell::OnceCell;
 
 #[repr(transparent)]
 pub(crate) struct CachedKey {
@@ -33,5 +32,3 @@ impl Drop for CachedKey {
 
 pub(crate) type KeyMap =
     AssociativeCache<u64, CachedKey, Capacity2048, HashDirectMapped, RoundRobinReplacement>;
-
-pub(crate) static mut KEY_MAP: OnceCell<KeyMap> = OnceCell::new();

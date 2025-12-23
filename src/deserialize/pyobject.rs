@@ -17,7 +17,9 @@ pub(crate) fn get_unicode_key(key_str: &str) -> PyStr {
         assume!(key_str.len() <= 64);
         let hash = xxhash_rust::xxh3::xxh3_64(key_str.as_bytes());
         unsafe {
-            let state = crate::interpreter_state::get_current_state().as_ref().unwrap();
+            let state_ptr = crate::interpreter_state::get_current_state();
+            debug_assert!(!state_ptr.is_null());
+            let state = &*state_ptr;
             let key_map = &mut *state.key_map.get();
             let entry = key_map
                 .entry(&hash)

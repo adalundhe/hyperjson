@@ -4,6 +4,11 @@
 import time
 import sys
 import importlib
+import random
+import string
+import json
+import subprocess
+import glob
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
@@ -127,6 +132,68 @@ def create_complex_structure() -> Dict[str, Any]:
     return structure
 
 
+def generate_random_json_object(max_depth: int = 3, current_depth: int = 0) -> Dict[str, Any]:
+    """
+    Generate a random, valid JSON object with random keys and values.
+    This is designed to test performance when caches are ineffective.
+    """
+    if current_depth >= max_depth:
+        # Leaf node - return primitive value
+        value_type = random.choice(['string', 'number', 'boolean', 'null'])
+        if value_type == 'string':
+            # Random string of 10-50 characters
+            length = random.randint(10, 50)
+            return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+        elif value_type == 'number':
+            # Random number (int or float)
+            if random.random() < 0.5:
+                return random.randint(-1000000, 1000000)
+            else:
+                return round(random.uniform(-1000000.0, 1000000.0), 2)
+        elif value_type == 'boolean':
+            return random.choice([True, False])
+        else:  # null
+            return None
+    
+    # Generate a dictionary with 3-8 random keys
+    num_keys = random.randint(3, 8)
+    obj = {}
+    
+    for _ in range(num_keys):
+        # Generate random key (8-20 characters, using random characters)
+        key_length = random.randint(8, 20)
+        key = ''.join(random.choices(string.ascii_letters + string.digits + '_', k=key_length))
+        
+        # Generate random value (can be primitive or nested structure)
+        if random.random() < 0.3 and current_depth < max_depth - 1:
+            # 30% chance of nested object
+            obj[key] = generate_random_json_object(max_depth, current_depth + 1)
+        elif random.random() < 0.2 and current_depth < max_depth - 1:
+            # 20% chance of array
+            array_length = random.randint(2, 8)
+            obj[key] = [
+                generate_random_json_object(max_depth, current_depth + 1)
+                for _ in range(array_length)
+            ]
+        else:
+            # 50% chance of primitive value
+            value_type = random.choice(['string', 'number', 'boolean', 'null'])
+            if value_type == 'string':
+                length = random.randint(10, 50)
+                obj[key] = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+            elif value_type == 'number':
+                if random.random() < 0.5:
+                    obj[key] = random.randint(-1000000, 1000000)
+                else:
+                    obj[key] = round(random.uniform(-1000000.0, 1000000.0), 2)
+            elif value_type == 'boolean':
+                obj[key] = random.choice([True, False])
+            else:  # null
+                obj[key] = None
+    
+    return obj
+
+
 def benchmark_orjson(orjson_module, name: str, data: Dict[str, Any], iterations: int = 10000):
     """Benchmark serialization and deserialization."""
     print(f"\n{'='*60}")
@@ -191,6 +258,255 @@ def benchmark_orjson(orjson_module, name: str, data: Dict[str, Any], iterations:
 
 
 def main():
+    # Check if random benchmark is requested
+    run_random = len(sys.argv) > 1 and (sys.argv[1].lower() == '--random-only' or sys.argv[1].lower() == '--random')
+    
+    if run_random:
+        # Random benchmark
+        print("\n" + "="*80)
+        print("RANDOM OBJECT BENCHMARK (Cache-unfriendly, 10k iterations)")
+        print("="*80)
+        
+        print("\nThis benchmark generates random JSON objects with random keys and values.")
+        print("This tests performance when caches are ineffective (cache misses expected).")
+        
+        random_iterations = 10000
+        print(f"\nUsing {random_iterations:,} iterations with fresh random objects per iteration")
+        print("Each object is 1-5 KB with 3-8 random keys and nested structures")
+        
+        # Benchmark random objects with original orjson
+        print("\n" + "="*60)
+        print("Testing ORIGINAL orjson (PyPI 3.11.4) - Random Objects")
+        print("="*60)
+        orig_result = None
+        try:
+            # Clear any cached imports
+            if 'orjson' in sys.modules:
+                del sys.modules['orjson']
+            import orjson as orjson_original
+            
+            # Generate a sample to show size
+            sample_obj = generate_random_json_object()
+            sample_json = json.dumps(sample_obj)
+            sample_size = len(sample_json.encode('utf-8'))
+            print(f"\nSample random object size: {sample_size:,} bytes ({sample_size/1024:.2f} KB)")
+            
+            # Benchmark with random objects generated on-the-fly
+            print("\nGenerating fresh random objects for each iteration...")
+            
+            # Warm-up
+            warmup_iterations = min(100, random_iterations // 100)
+            for _ in range(warmup_iterations):
+                test_obj = generate_random_json_object()
+                serialized = orjson_original.dumps(test_obj)
+                _ = orjson_original.loads(serialized)
+            
+            # Serialization benchmark
+            serialize_start = time.perf_counter()
+            total_serialized_size = 0
+            for _ in range(random_iterations):
+                test_obj = generate_random_json_object()
+                serialized = orjson_original.dumps(test_obj)
+                total_serialized_size += len(serialized)
+            serialize_time = time.perf_counter() - serialize_start
+            
+            # Deserialization benchmark (need to serialize first to get bytes)
+            test_objects_serialized = []
+            for _ in range(random_iterations):
+                test_obj = generate_random_json_object()
+                test_objects_serialized.append(orjson_original.dumps(test_obj))
+            
+            deserialize_start = time.perf_counter()
+            for serialized in test_objects_serialized:
+                _ = orjson_original.loads(serialized)
+            deserialize_time = time.perf_counter() - deserialize_start
+            
+            # Round-trip benchmark
+            roundtrip_start = time.perf_counter()
+            for _ in range(random_iterations):
+                test_obj = generate_random_json_object()
+                serialized = orjson_original.dumps(test_obj)
+                _ = orjson_original.loads(serialized)
+            roundtrip_time = time.perf_counter() - roundtrip_start
+            
+            serialize_ops_per_sec = random_iterations / serialize_time
+            deserialize_ops_per_sec = random_iterations / deserialize_time
+            roundtrip_ops_per_sec = random_iterations / roundtrip_time
+            
+            print(f"\nSerialization:")
+            print(f"  Time: {serialize_time:.4f}s")
+            print(f"  Operations/sec: {serialize_ops_per_sec:,.0f}")
+            print(f"  Avg time per op: {(serialize_time/random_iterations)*1e6:.2f}μs")
+            
+            print(f"\nDeserialization:")
+            print(f"  Time: {deserialize_time:.4f}s")
+            print(f"  Operations/sec: {deserialize_ops_per_sec:,.0f}")
+            print(f"  Avg time per op: {(deserialize_time/random_iterations)*1e6:.2f}μs")
+            
+            print(f"\nRound-trip:")
+            print(f"  Time: {roundtrip_time:.4f}s")
+            print(f"  Operations/sec: {roundtrip_ops_per_sec:,.0f}")
+            print(f"  Avg time per op: {(roundtrip_time/random_iterations)*1e6:.2f}μs")
+            
+            print(f"\nAvg serialized size: {total_serialized_size / random_iterations:.0f} bytes")
+            
+            orig_result = {
+                'name': 'Original orjson (PyPI 3.11.4) - Random',
+                'serialize_time': serialize_time,
+                'deserialize_time': deserialize_time,
+                'roundtrip_time': roundtrip_time,
+                'serialize_ops_per_sec': serialize_ops_per_sec,
+                'deserialize_ops_per_sec': deserialize_ops_per_sec,
+                'roundtrip_ops_per_sec': roundtrip_ops_per_sec,
+                'serialized_size': total_serialized_size // random_iterations
+            }
+        except Exception as e:
+            print(f"Error loading original orjson: {e}")
+            print("Skipping original orjson benchmark")
+        
+        # Switch to our version
+        print("\n" + "="*60)
+        print("Switching to MODIFIED orjson (subinterpreter-compatible)")
+        print("="*60)
+        subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "orjson"], 
+                      capture_output=True, check=False)
+        wheels = glob.glob("target/wheels/orjson*.whl")
+        if wheels:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+                          capture_output=True, check=False)
+        else:
+            print("ERROR: Could not find wheel file. Building...")
+            subprocess.run([sys.executable, "-m", "maturin", "build", "--release"], 
+                          check=False)
+            wheels = glob.glob("target/wheels/orjson*.whl")
+            if wheels:
+                subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+                              capture_output=True, check=False)
+        
+        # Clear module cache and reimport
+        if 'orjson' in sys.modules:
+            del sys.modules['orjson']
+        import orjson as orjson_modified
+        
+        # Benchmark with random objects
+        print("\nGenerating fresh random objects for each iteration...")
+        
+        # Serialization benchmark
+        serialize_start = time.perf_counter()
+        total_serialized_size = 0
+        for _ in range(random_iterations):
+            test_obj = generate_random_json_object()
+            serialized = orjson_modified.dumps(test_obj)
+            total_serialized_size += len(serialized)
+        serialize_time = time.perf_counter() - serialize_start
+        
+        # Deserialization benchmark
+        test_objects_serialized = []
+        for _ in range(random_iterations):
+            test_obj = generate_random_json_object()
+            test_objects_serialized.append(orjson_modified.dumps(test_obj))
+        
+        deserialize_start = time.perf_counter()
+        for serialized in test_objects_serialized:
+            _ = orjson_modified.loads(serialized)
+        deserialize_time = time.perf_counter() - deserialize_start
+        
+        # Round-trip benchmark
+        roundtrip_start = time.perf_counter()
+        for _ in range(random_iterations):
+            test_obj = generate_random_json_object()
+            serialized = orjson_modified.dumps(test_obj)
+            _ = orjson_modified.loads(serialized)
+        roundtrip_time = time.perf_counter() - roundtrip_start
+        
+        serialize_ops_per_sec = random_iterations / serialize_time
+        deserialize_ops_per_sec = random_iterations / deserialize_time
+        roundtrip_ops_per_sec = random_iterations / roundtrip_time
+        
+        print(f"\nSerialization:")
+        print(f"  Time: {serialize_time:.4f}s")
+        print(f"  Operations/sec: {serialize_ops_per_sec:,.0f}")
+        print(f"  Avg time per op: {(serialize_time/random_iterations)*1e6:.2f}μs")
+        
+        print(f"\nDeserialization:")
+        print(f"  Time: {deserialize_time:.4f}s")
+        print(f"  Operations/sec: {deserialize_ops_per_sec:,.0f}")
+        print(f"  Avg time per op: {(deserialize_time/random_iterations)*1e6:.2f}μs")
+        
+        print(f"\nRound-trip:")
+        print(f"  Time: {roundtrip_time:.4f}s")
+        print(f"  Operations/sec: {roundtrip_ops_per_sec:,.0f}")
+        print(f"  Avg time per op: {(roundtrip_time/random_iterations)*1e6:.2f}μs")
+        
+        print(f"\nAvg serialized size: {total_serialized_size / random_iterations:.0f} bytes")
+        
+        mod_result = {
+            'name': 'Modified orjson (subinterpreter-compatible) - Random',
+            'serialize_time': serialize_time,
+            'deserialize_time': deserialize_time,
+            'roundtrip_time': roundtrip_time,
+            'serialize_ops_per_sec': serialize_ops_per_sec,
+            'deserialize_ops_per_sec': deserialize_ops_per_sec,
+            'roundtrip_ops_per_sec': roundtrip_ops_per_sec,
+            'serialized_size': total_serialized_size // random_iterations
+        }
+        
+        # Comparison for random objects
+        if orig_result is not None:
+            print(f"\n{'='*60}")
+            print("PERFORMANCE COMPARISON - Random Objects")
+            print(f"{'='*60}")
+            
+            print(f"\nSerialization:")
+            serialize_diff = ((mod_result['serialize_time'] - orig_result['serialize_time']) / orig_result['serialize_time']) * 100
+            print(f"  Original:  {orig_result['serialize_ops_per_sec']:,.0f} ops/sec")
+            print(f"  Modified:  {mod_result['serialize_ops_per_sec']:,.0f} ops/sec")
+            if serialize_diff > 0:
+                print(f"  Modified is {serialize_diff:.2f}% slower")
+            else:
+                print(f"  Modified is {abs(serialize_diff):.2f}% faster")
+            
+            print(f"\nDeserialization:")
+            deserialize_diff = ((mod_result['deserialize_time'] - orig_result['deserialize_time']) / orig_result['deserialize_time']) * 100
+            print(f"  Original:  {orig_result['deserialize_ops_per_sec']:,.0f} ops/sec")
+            print(f"  Modified:  {mod_result['deserialize_ops_per_sec']:,.0f} ops/sec")
+            if deserialize_diff > 0:
+                print(f"  Modified is {deserialize_diff:.2f}% slower")
+            else:
+                print(f"  Modified is {abs(deserialize_diff):.2f}% faster")
+            
+            print(f"\nRound-trip:")
+            roundtrip_diff = ((mod_result['roundtrip_time'] - orig_result['roundtrip_time']) / orig_result['roundtrip_time']) * 100
+            print(f"  Original:  {orig_result['roundtrip_ops_per_sec']:,.0f} ops/sec")
+            print(f"  Modified:  {mod_result['roundtrip_ops_per_sec']:,.0f} ops/sec")
+            if roundtrip_diff > 0:
+                print(f"  Modified is {roundtrip_diff:.2f}% slower")
+            else:
+                print(f"  Modified is {abs(roundtrip_diff):.2f}% faster")
+            
+            # Overall assessment
+            max_diff = max(abs(serialize_diff), abs(deserialize_diff), abs(roundtrip_diff))
+            avg_diff = (serialize_diff + deserialize_diff + roundtrip_diff) / 3
+            
+            print(f"\n{'='*60}")
+            print(f"Overall Assessment - Random Objects:")
+            print(f"  Average difference: {avg_diff:+.2f}%")
+            print(f"  Maximum difference: {max_diff:.2f}%")
+            
+            if abs(avg_diff) < 2:
+                print(f"\n✅ Performance is excellent - within 2% of original!")
+            elif abs(avg_diff) < 5:
+                print(f"\n✅ Performance is very good - within 5% of original!")
+            elif abs(avg_diff) < 10:
+                print(f"\n⚠️  Performance is acceptable - within 10% of original")
+            else:
+                if avg_diff > 0:
+                    print(f"\n❌ Performance is {avg_diff:.2f}% slower - may need optimization")
+                else:
+                    print(f"\n✅ Performance is {abs(avg_diff):.2f}% faster - excellent improvement!")
+        return
+    
+    # Original benchmark
     print("Creating complex test structure...")
     test_data = create_complex_structure()
     print(f"Test structure created:")
@@ -222,8 +538,6 @@ def main():
     print("\n" + "="*60)
     print("Switching to MODIFIED orjson (subinterpreter-compatible)")
     print("="*60)
-    import subprocess
-    import glob
     subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "orjson"], 
                    capture_output=True, check=False)
     # Find the wheel file

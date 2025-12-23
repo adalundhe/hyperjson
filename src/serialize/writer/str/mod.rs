@@ -12,14 +12,9 @@ mod generic;
 #[cfg(target_arch = "x86_64")]
 mod sse2;
 
-#[cfg(all(target_arch = "x86_64", feature = "avx512"))]
-mod avx512;
-
 #[cfg(all(not(target_arch = "x86_64"), not(feature = "generic_simd")))]
 pub(crate) use scalar::format_escaped_str_scalar;
 
-#[cfg(all(target_arch = "x86_64", feature = "avx512"))]
-pub(crate) use avx512::format_escaped_str_impl_512vl;
 
 #[allow(unused_imports)]
 #[cfg(target_arch = "x86_64")]

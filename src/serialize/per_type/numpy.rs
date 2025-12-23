@@ -10,7 +10,7 @@ use crate::serialize::per_type::{
 };
 use crate::serialize::serializer::PyObjectSerializer;
 use crate::str::PyStr;
-use crate::typeref::{ARRAY_STRUCT_STR, DESCR_STR, DTYPE_STR, NUMPY_TYPES, load_numpy_types};
+use crate::typeref::{get_array_struct_str, get_descr_str, get_dtype_str, NUMPY_TYPES, load_numpy_types};
 use crate::util::isize_to_usize;
 use core::ffi::{c_char, c_int, c_void};
 use jiff::Timestamp;
@@ -196,7 +196,7 @@ impl NumpyArray {
     #[inline(never)]
     #[cfg_attr(feature = "optimize", optimize(size))]
     pub fn new(ptr: *mut PyObject, opts: Opt) -> Result<Self, PyArrayError> {
-        let capsule = ffi!(PyObject_GetAttr(ptr, ARRAY_STRUCT_STR));
+        let capsule = ffi!(PyObject_GetAttr(ptr, get_array_struct_str()));
         debug_assert!(!capsule.is_null());
         let array = unsafe {
             (*capsule.cast::<PyCapsule>())
@@ -1248,8 +1248,8 @@ impl NumpyDatetimeUnit {
     #[cold]
     #[cfg_attr(feature = "optimize", optimize(size))]
     fn from_pyobject(ptr: *mut PyObject) -> Self {
-        let dtype = ffi!(PyObject_GetAttr(ptr, DTYPE_STR));
-        let descr = ffi!(PyObject_GetAttr(dtype, DESCR_STR));
+        let dtype = ffi!(PyObject_GetAttr(ptr, get_dtype_str()));
+        let descr = ffi!(PyObject_GetAttr(dtype, get_descr_str()));
         let el0 = ffi!(PyList_GET_ITEM(descr, 0));
         let descr_str = ffi!(PyTuple_GET_ITEM(el0, 1));
         let uni = unsafe { PyStr::from_ptr_unchecked(descr_str).to_str().unwrap() };

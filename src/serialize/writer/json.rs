@@ -568,21 +568,6 @@ macro_rules! reserve_str {
     };
 }
 
-#[cfg(all(target_arch = "x86_64", feature = "avx512"))]
-type StrFormatter = unsafe fn(*mut u8, *const u8, usize) -> usize;
-
-#[cfg(all(target_arch = "x86_64", feature = "avx512"))]
-static mut STR_FORMATTER_FN: StrFormatter =
-    crate::serialize::writer::str::format_escaped_str_impl_sse2_128;
-
-pub(crate) fn set_str_formatter_fn() {
-    unsafe {
-        #[cfg(all(target_arch = "x86_64", feature = "avx512"))]
-        if std::is_x86_feature_detected!("avx512vl") {
-            STR_FORMATTER_FN = crate::serialize::writer::str::format_escaped_str_impl_512vl;
-        }
-    }
-}
 
 #[cfg(all(target_arch = "x86_64", not(feature = "avx512")))]
 #[inline(always)]
@@ -612,7 +597,8 @@ where
     unsafe {
         reserve_str!(writer, value);
 
-        let written = STR_FORMATTER_FN(
+        // Use SSE2 implementation directly since AVX512 implementations were removed
+        let written = crate::serialize::writer::str::format_escaped_str_impl_sse2_128(
             writer.as_mut_buffer_ptr(),
             value.as_bytes().as_ptr(),
             value.len(),

@@ -7,15 +7,14 @@
 //! Each interpreter has its own instance of all PyObject pointers and caches.
 
 use core::ffi::CStr;
-use core::ptr::{NonNull, null_mut};
+use core::ptr::null_mut;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::thread::LocalKey;
 
 use crate::deserialize::cache::KeyMap;
 use crate::ffi::{
     Py_DECREF, Py_False, Py_INCREF, Py_None, Py_True, Py_XDECREF, PyBool_Type, PyByteArray_Type,
-    PyBytes_Type, PyDict_Type, PyErr_Clear, PyErr_NewException, PyExc_TypeError, PyFloat_Type,
+    PyBytes_Type, PyDict_Type, PyErr_NewException, PyExc_TypeError, PyFloat_Type,
     PyImport_ImportModule, PyList_Type, PyLong_Type, PyMapping_GetItemString, PyMemoryView_Type,
     PyObject, PyObject_GenericGetDict, PyTuple_Type, PyTypeObject, PyUnicode_InternFromString,
     PyUnicode_New, PyUnicode_Type, orjson_fragmenttype_new,
@@ -261,36 +260,50 @@ pub(crate) unsafe fn get_or_init_state(module: *mut PyObject) -> *const Interpre
     }
 }
 
-/// Thread-local cache for the current interpreter's state pointer.
-/// This avoids repeated module imports for performance.
 thread_local! {
-    static CACHED_STATE: std::cell::Cell<(*mut PyObject, *const InterpreterState)> = 
-        std::cell::Cell::new((null_mut(), null_mut()));
+    // Cache just the state pointer for fastest access. Use null_mut() as sentinel for "not cached"
+    static CACHED_STATE: std::cell::Cell<*const InterpreterState> = 
+        std::cell::Cell::new(null_mut());
+    // Also cache the module pointer to keep it alive (prevents garbage collection)
+    static CACHED_MODULE: std::cell::Cell<*mut PyObject> = 
+        std::cell::Cell::new(null_mut());
 }
 
 /// Get the current interpreter's state, using thread-local cache for performance.
-/// This imports the orjson module if not cached.
+/// This imports the hyperjson module if not cached.
+/// 
+/// Optimized hot path: validate cached state belongs to current interpreter.
+/// In subinterpreter scenarios, the same OS thread may be reused across interpreters,
+/// so we must always validate that the cached module belongs to the current interpreter.
 #[inline(always)]
 pub(crate) unsafe fn get_current_state() -> *const InterpreterState {
     unsafe {
-        // Try to get from cache first
-        let cached = CACHED_STATE.with(|cell| {
-            let (cached_module, cached_state) = cell.get();
-            if !cached_module.is_null() && !cached_state.is_null() {
-                Some((cached_module, cached_state))
-            } else {
-                None
+        // Fast path: check cache first (cheap thread-local reads)
+        let cached_state = CACHED_STATE.with(|cell| cell.get());
+        let cached_module = CACHED_MODULE.with(|cell| cell.get());
+        
+        // If we have a cached state, validate it by importing the current module
+        // PyImport_ImportModule is fast for already-imported modules (dict lookup)
+        if !cached_state.is_null() && !cached_module.is_null() {
+            let module = PyImport_ImportModule(c"hyperjson".as_ptr());
+            if module.is_null() {
+                // This shouldn't happen, but if it does, we'll crash
+                core::hint::unreachable_unchecked();
             }
-        });
-
-        if let Some((_cached_module, cached_state)) = cached {
-            // Verify the module is still valid by checking if it's the same interpreter
-            // For now, we'll just use it - in practice, the module pointer should be stable
-            // within a thread for the same interpreter
-            return cached_state;
+            
+            // Validate: module pointers match (same interpreter)
+            if cached_module == module {
+                // Cache hit: current interpreter matches cached one
+                // DECREF the module we just imported since we're using the cached state
+                Py_DECREF(module);
+                return cached_state;
+            }
+            
+            // Interpreter mismatch: DECREF the module and fall through to cache miss path
+            Py_DECREF(module);
         }
 
-        // Cache miss - import module and cache it
+        // Cache miss or interpreter mismatch: import module and get state for current interpreter
         let module = PyImport_ImportModule(c"hyperjson".as_ptr());
         if module.is_null() {
             // This shouldn't happen, but if it does, we'll crash
@@ -298,12 +311,20 @@ pub(crate) unsafe fn get_current_state() -> *const InterpreterState {
         }
         let state = get_or_init_state(module);
         
-        // Cache it
-        CACHED_STATE.with(|cell| {
-            cell.set((module, state));
+        // Update cache with current interpreter's state and module
+        // DECREF the old cached module if it exists (interpreter switch case)
+        let old_cached_module = CACHED_MODULE.with(|cell| {
+            let old = cell.get();
+            cell.set(module);
+            old
         });
+        if !old_cached_module.is_null() && old_cached_module != module {
+            // Old module from a different interpreter - release the reference
+            Py_DECREF(old_cached_module);
+        }
+        CACHED_STATE.with(|cell| cell.set(state));
         
-        // Don't DECREF the module - we're keeping it alive for the cache
+        // Don't DECREF the new module - we're keeping it alive for the cache
         // The module will be cleaned up when the interpreter is destroyed
         state
     }

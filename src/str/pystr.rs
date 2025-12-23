@@ -22,20 +22,6 @@ fn to_str_via_ffi(op: *mut PyObject) -> Option<&'static str> {
     }
 }
 
-#[cfg(feature = "avx512")]
-pub type StrDeserializer = unsafe fn(&str) -> *mut PyObject;
-
-#[cfg(feature = "avx512")]
-static mut STR_CREATE_FN: StrDeserializer = super::scalar::str_impl_kind_scalar;
-
-pub fn set_str_create_fn() {
-    unsafe {
-        #[cfg(feature = "avx512")]
-        if std::is_x86_feature_detected!("avx512vl") {
-            STR_CREATE_FN = crate::str::avx512::create_str_impl_avx512vl;
-        }
-    }
-}
 
 #[cfg(all(target_endian = "little", Py_3_14, Py_GIL_DISABLED))]
 const STATE_KIND_SHIFT: usize = 8;
@@ -83,10 +69,8 @@ impl PyStr {
                 ptr: nonnull!(use_immortal!(crate::typeref::get_empty_unicode())),
             };
         }
-        #[cfg(not(feature = "avx512"))]
+        // Use scalar implementation directly since AVX512 implementations were removed
         let str_ptr = unsafe { super::scalar::str_impl_kind_scalar(buf) };
-        #[cfg(feature = "avx512")]
-        let str_ptr = unsafe { STR_CREATE_FN(buf) };
         debug_assert!(!str_ptr.is_null());
         PyStr {
             ptr: nonnull!(str_ptr),
