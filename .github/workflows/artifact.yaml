@@ -132,6 +132,85 @@ jobs:
           overwrite: true
           retention-days: 1
 
+  # s390x is built via QEMU emulation since zig doesn't support it and
+  # native cross-compilation requires complex sysroot setup
+  manylinux_s390x:
+    name: "manylinux_s390x_${{ matrix.python.interpreter }}"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: [
+          { version: '3.14', interpreter: 'python3.14', publish: true },
+          { version: '3.13', interpreter: 'python3.13', publish: true },
+          { version: '3.12', interpreter: 'python3.12', publish: true },
+          { version: '3.11', interpreter: 'python3.11', publish: true },
+          { version: '3.10', interpreter: 'python3.10', publish: true },
+          { version: '3.9', interpreter: 'python3.9', publish: true },
+        ]
+    env:
+      RUSTFLAGS: "-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/s390x
+
+      - name: build-std
+        run: |
+          mkdir -p .cargo
+          cp ci/config.toml .cargo/config.toml
+
+      - name: Build
+        uses: PyO3/maturin-action@v1
+        with:
+          target: s390x-unknown-linux-gnu
+          rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
+          rustup-components: rust-src
+          manylinux: manylinux_2_34
+          args: --release --strip --out=dist -i ${{ matrix.python.interpreter }}
+
+      - name: Store wheels
+        if: matrix.python.publish == true
+        uses: actions/upload-artifact@v5
+        with:
+          name: "hyperjson_manylinux_s390x_${{ matrix.python.interpreter }}"
+          path: dist
+          overwrite: true
+          retention-days: 1
+          if-no-files-found: "error"
+          compression-level: 0
+
+      - name: setup-qemu-container
+        uses: sandervocke/setup-qemu-container@v1
+        with:
+          container: registry.fedoraproject.org/fedora:43
+          arch: s390x
+          podman_args: "-v .:/hyperjson -v /tmp:/tmp --workdir /hyperjson"
+
+      - name: setup-shell-wrapper
+        uses: sandervocke/setup-shell-wrapper@v1
+
+      - name: Emulated Test
+        shell: wrap-shell {0}
+        env:
+          WRAP_SHELL: run-in-container.sh
+        run: |
+          set -eou pipefail
+
+          dnf install --setopt=install_weak_deps=false -y ${{ matrix.python.interpreter }} python3-uv
+
+          uv venv --python ${{ matrix.python.interpreter }}
+          source .venv/bin/activate
+
+          uv pip install -r test/requirements.txt
+          uv pip install dist/hyperjson*.whl
+
+          pytest -v test
+
   manylinux_cross:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -152,21 +231,12 @@ jobs:
             features: '',
             rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C opt-level=s',
             target: 'armv7-unknown-linux-gnueabihf',
-            use_zig: true,
           },
           {
             arch: 'ppc64le',
             features: 'generic_simd',
             rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings',
             target: 'powerpc64le-unknown-linux-gnu',
-            use_zig: true,
-          },
-          {
-            arch: 's390x',
-            features: '',
-            rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10',
-            target: 's390x-unknown-linux-gnu',
-            use_zig: false,
           },
         ]
     steps:
@@ -182,8 +252,7 @@ jobs:
         mkdir .cargo
         cp ci/config.toml .cargo/config.toml
 
-    - name: Build (with zig)
-      if: matrix.target.use_zig == true
+    - name: Build
       uses: PyO3/maturin-action@v1
       env:
         RUSTFLAGS: "${{ matrix.target.rustflags }}"
@@ -196,23 +265,6 @@ jobs:
         # Use zig as cross-compiler - handles C code (yyjson) automatically
         args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }} --zig
 
-    - name: Build (with native cross-compiler)
-      if: matrix.target.use_zig == false
-      uses: PyO3/maturin-action@v1
-      env:
-        PYO3_CROSS_LIB_DIR: "/opt/python/${{ matrix.python.abi }}"
-        RUSTFLAGS: "${{ matrix.target.rustflags }}"
-        JEMALLOC_SYS_WITH_LG_PAGE: "16"
-      with:
-        target: "${{ matrix.target.target }}"
-        rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
-        rustup-components: rust-src
-        manylinux: "${{ matrix.python.manylinux }}"
-        # Install s390x cross-compiler inside the manylinux container
-        before-script-linux: |
-          dnf install -y gcc-s390x-linux-gnu gcc-c++-s390x-linux-gnu
-        args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }}
-
     - name: Store wheels
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
@@ -223,35 +275,6 @@ jobs:
         retention-days: 1
         if-no-files-found: "error"
         compression-level: 0
-
-    - name: setup-qemu-container
-      if: "matrix.target.arch == 's390x'"
-      uses: sandervocke/setup-qemu-container@v1
-      with:
-        container: registry.fedoraproject.org/fedora:43
-        arch: ${{ matrix.target.arch }}
-        podman_args: "-v .:/hyperjson -v /tmp:/tmp --workdir /hyperjson"
-
-    - name: setup-shell-wrapper
-      uses: sandervocke/setup-shell-wrapper@v1
-
-    - name: Emulated Test
-      if: "matrix.target.arch == 's390x'"
-      shell: wrap-shell {0}
-      env:
-        WRAP_SHELL: run-in-container.sh
-      run: |
-        set -eou pipefail
-
-        dnf install --setopt=install_weak_deps=false -y ${{ matrix.python.interpreter }} python3-uv
-
-        uv venv --python ${{ matrix.python.interpreter }}
-        source .venv/bin/activate
-
-        uv pip install -r test/requirements.txt
-        uv pip install dist/hyperjson*.whl
-
-        pytest -v test
 
   musllinux_amd64:
     runs-on: ubuntu-24.04
@@ -716,6 +739,7 @@ jobs:
       macos_universal2_aarch64,
       manylinux,
       manylinux_cross,
+      manylinux_s390x,
       musllinux_aarch64,
       musllinux_amd64,
       sdist,
