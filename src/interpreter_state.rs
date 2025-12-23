@@ -117,8 +117,9 @@ pub(crate) struct InterpreterState {
 
     // Cache - per-interpreter (using UnsafeCell for interior mutability)
     // Safe because GIL ensures single-threaded access within an interpreter
+    // Boxed to avoid 48KB stack allocation when creating InterpreterState
     #[cfg(not(Py_GIL_DISABLED))]
-    pub key_map: core::cell::UnsafeCell<KeyCache>,
+    pub key_map: core::cell::UnsafeCell<Box<KeyCache>>,
 
     // Pre-allocated buffer for yyjson parsing - avoids malloc/free per parse
     // Safe because GIL ensures single-threaded access
@@ -213,9 +214,9 @@ impl InterpreterState {
                 // Exceptions
                 json_encode_error: null_mut(),
                 json_decode_error: null_mut(),
-                // Caches
+                // Caches - Box to avoid 48KB stack allocation
                 #[cfg(not(Py_GIL_DISABLED))]
-                key_map: core::cell::UnsafeCell::new(KeyCache::new()),
+                key_map: core::cell::UnsafeCell::new(Box::new(KeyCache::new())),
                 parse_buffer: core::cell::UnsafeCell::new(ParseBuffer::new()),
             };
 
