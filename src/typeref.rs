@@ -123,7 +123,7 @@ macro_rules! get_state {
 
 use crate::interpreter_state::InterpreterState;
 
-// Accessor functions for commonly used values (legacy - use state-aware versions in hot paths)
+// Accessor functions for per-interpreter values (use direct *_ptr() for built-in types in hot paths)
 #[inline(always)]
 pub(crate) fn get_default() -> *mut PyObject {
     unsafe { get_state!().default }
@@ -134,14 +134,16 @@ pub(crate) fn get_option() -> *mut PyObject {
     unsafe { get_state!().option }
 }
 
+/// Get None singleton - use `none_ptr()` directly in hot paths
 #[inline(always)]
 pub(crate) fn get_none() -> *mut PyObject {
-    unsafe { get_state!().none }
+    none_ptr()
 }
 
+/// Get True singleton - use `true_ptr()` directly in hot paths
 #[inline(always)]
 pub(crate) fn get_true() -> *mut PyObject {
-    unsafe { get_state!().true_ }
+    true_ptr()
 }
 
 #[inline(always)]
@@ -152,11 +154,6 @@ pub(crate) fn get_empty_unicode() -> *mut PyObject {
 #[inline(always)]
 pub(crate) fn get_empty_unicode_from_state(state: *const InterpreterState) -> *mut PyObject {
     unsafe { (*state).empty_unicode }
-}
-
-#[inline(always)]
-pub(crate) fn get_int_type() -> *mut PyTypeObject {
-    unsafe { get_state!().int_type }
 }
 
 #[inline(always)]
@@ -174,42 +171,9 @@ pub(crate) fn get_json_decode_error() -> *mut PyObject {
     unsafe { get_state!().json_decode_error }
 }
 
-// State-aware accessor functions for use in serialization hot paths
-// These accept the interpreter state pointer directly to avoid thread-local lookups
-#[inline(always)]
-pub(crate) fn get_str_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).str_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_int_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).int_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_bool_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).bool_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_none_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).none_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_float_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).float_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_list_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).list_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_dict_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).dict_type }
-}
+// State-aware accessor functions for per-interpreter data
+// Built-in types now use direct CPython globals (*_ptr() functions) - no state needed
+// These remain for per-interpreter types that require module lookups
 
 #[inline(always)]
 pub(crate) fn get_datetime_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
@@ -229,11 +193,6 @@ pub(crate) fn get_time_type_from_state(state: *const InterpreterState) -> *mut P
 #[inline(always)]
 pub(crate) fn get_uuid_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
     unsafe { (*state).uuid_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_tuple_type_from_state(state: *const InterpreterState) -> *mut PyTypeObject {
-    unsafe { (*state).tuple_type }
 }
 
 #[inline(always)]
@@ -272,26 +231,7 @@ pub(crate) fn get_int_attr_str() -> *mut PyObject {
     unsafe { get_state!().int_attr_str }
 }
 
-// Type accessors
-#[inline(always)]
-pub(crate) fn get_bytes_type() -> *mut PyTypeObject {
-    unsafe { get_state!().bytes_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_str_type() -> *mut PyTypeObject {
-    unsafe { get_state!().str_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_list_type() -> *mut PyTypeObject {
-    unsafe { get_state!().list_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_tuple_type() -> *mut PyTypeObject {
-    unsafe { get_state!().tuple_type }
-}
+// Per-interpreter type accessors - require state lookup
 
 #[inline(always)]
 pub(crate) fn get_field_type() -> *mut PyTypeObject {
@@ -301,16 +241,6 @@ pub(crate) fn get_field_type() -> *mut PyTypeObject {
 #[inline(always)]
 pub(crate) fn get_zoneinfo_type() -> *mut PyTypeObject {
     unsafe { get_state!().zoneinfo_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_bytearray_type() -> *mut PyTypeObject {
-    unsafe { get_state!().bytearray_type }
-}
-
-#[inline(always)]
-pub(crate) fn get_memoryview_type() -> *mut PyTypeObject {
-    unsafe { get_state!().memoryview_type }
 }
 
 // String constant accessors

@@ -73,29 +73,38 @@ pub(crate) unsafe extern "C" fn orjson_fragment_tp_new(
         } else {
             let contents = crate::ffi::PyTuple_GET_ITEM(args, 0);
             Py_INCREF(contents);
-            let obj = Box::new(Fragment {
-                #[cfg(Py_GIL_DISABLED)]
-                ob_tid: 0,
-                #[cfg(all(Py_GIL_DISABLED, Py_3_14))]
-                ob_flags: 0,
-                #[cfg(all(Py_GIL_DISABLED, not(Py_3_14)))]
-                _padding: 0,
-                #[cfg(Py_GIL_DISABLED)]
-                ob_mutex: pymutex_new!(),
-                #[cfg(Py_GIL_DISABLED)]
-                ob_gc_bits: 0,
-                #[cfg(Py_GIL_DISABLED)]
-                ob_ref_local: AtomicU32::new(0),
-                #[cfg(Py_GIL_DISABLED)]
-                ob_ref_shared: AtomicIsize::new(0),
-                #[cfg(not(Py_GIL_DISABLED))]
-                ob_refcnt: 1,
-                #[cfg(PyPy)]
-                ob_pypy_link: 0,
-                ob_type: crate::typeref::get_fragment_type(),
-                contents: contents,
-            });
-            Box::into_raw(obj).cast::<PyObject>()
+            // Use PyMem_Malloc for allocation to match PyMem_Free in dealloc
+            let ptr = crate::ffi::PyMem_Malloc(core::mem::size_of::<Fragment>());
+            if ptr.is_null() {
+                return null_mut();
+            }
+            let obj = ptr.cast::<Fragment>();
+            core::ptr::write(
+                obj,
+                Fragment {
+                    #[cfg(Py_GIL_DISABLED)]
+                    ob_tid: 0,
+                    #[cfg(all(Py_GIL_DISABLED, Py_3_14))]
+                    ob_flags: 0,
+                    #[cfg(all(Py_GIL_DISABLED, not(Py_3_14)))]
+                    _padding: 0,
+                    #[cfg(Py_GIL_DISABLED)]
+                    ob_mutex: pymutex_new!(),
+                    #[cfg(Py_GIL_DISABLED)]
+                    ob_gc_bits: 0,
+                    #[cfg(Py_GIL_DISABLED)]
+                    ob_ref_local: AtomicU32::new(0),
+                    #[cfg(Py_GIL_DISABLED)]
+                    ob_ref_shared: AtomicIsize::new(0),
+                    #[cfg(not(Py_GIL_DISABLED))]
+                    ob_refcnt: 1,
+                    #[cfg(PyPy)]
+                    ob_pypy_link: 0,
+                    ob_type: crate::typeref::get_fragment_type(),
+                    contents: contents,
+                },
+            );
+            obj.cast::<PyObject>()
         }
     }
 }

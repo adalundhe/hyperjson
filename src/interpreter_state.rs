@@ -11,13 +11,11 @@ use core::ptr::null_mut;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use crate::deserialize::cache::KeyMap;
+use crate::deserialize::cache::KeyCache;
 use crate::ffi::{
-    Py_DECREF, Py_False, Py_INCREF, Py_None, Py_True, Py_XDECREF, PyBool_Type, PyByteArray_Type,
-    PyBytes_Type, PyDict_Type, PyErr_NewException, PyExc_TypeError, PyFloat_Type,
-    PyImport_ImportModule, PyList_Type, PyLong_Type, PyMapping_GetItemString, PyMemoryView_Type,
-    PyObject, PyObject_GenericGetDict, PyTuple_Type, PyTypeObject, PyUnicode_InternFromString,
-    PyUnicode_New, PyUnicode_Type, orjson_fragmenttype_new,
+    Py_DECREF, Py_INCREF, Py_XDECREF, PyErr_NewException, PyExc_TypeError, PyImport_ImportModule,
+    PyMapping_GetItemString, PyObject, PyObject_GenericGetDict, PyTypeObject,
+    PyUnicode_InternFromString, PyUnicode_New, orjson_fragmenttype_new,
 };
 
 /// Per-interpreter state containing all interpreter-specific PyObject pointers and caches.
@@ -74,29 +72,21 @@ impl Drop for ParseBuffer {
     }
 }
 
+/// Slimmed-down per-interpreter state.
+///
+/// Built-in types (str, int, dict, list, etc.) are now accessed via direct
+/// CPython global symbols in typeref.rs, eliminating pointer indirection.
+/// Only truly per-interpreter data is stored here.
 pub(crate) struct InterpreterState {
-    // Keyword argument strings
+    // Keyword argument strings (interned per-interpreter)
     pub default: *mut PyObject,
     pub option: *mut PyObject,
 
-    // Builtin objects
-    pub none: *mut PyObject,
-    pub true_: *mut PyObject,
-    pub false_: *mut PyObject,
+    // Empty string singleton (per-interpreter)
     pub empty_unicode: *mut PyObject,
 
-    // Type objects
-    pub bytes_type: *mut PyTypeObject,
-    pub bytearray_type: *mut PyTypeObject,
-    pub memoryview_type: *mut PyTypeObject,
-    pub str_type: *mut PyTypeObject,
-    pub int_type: *mut PyTypeObject,
-    pub bool_type: *mut PyTypeObject,
-    pub none_type: *mut PyTypeObject,
-    pub float_type: *mut PyTypeObject,
-    pub list_type: *mut PyTypeObject,
-    pub dict_type: *mut PyTypeObject,
-    pub tuple_type: *mut PyTypeObject,
+    // Type objects that must be looked up dynamically (per-interpreter)
+    // These come from external modules and may differ between interpreters
     pub datetime_type: *mut PyTypeObject,
     pub date_type: *mut PyTypeObject,
     pub time_type: *mut PyTypeObject,
@@ -106,7 +96,7 @@ pub(crate) struct InterpreterState {
     pub fragment_type: *mut PyTypeObject,
     pub zoneinfo_type: *mut PyTypeObject,
 
-    // Interned strings
+    // Interned strings (per-interpreter)
     pub utcoffset_method_str: *mut PyObject,
     pub normalize_method_str: *mut PyObject,
     pub convert_method_str: *mut PyObject,
@@ -121,14 +111,14 @@ pub(crate) struct InterpreterState {
     pub value_str: *mut PyObject,
     pub int_attr_str: *mut PyObject,
 
-    // Exception types
+    // Exception types (per-interpreter)
     pub json_encode_error: *mut PyObject,
     pub json_decode_error: *mut PyObject,
 
     // Cache - per-interpreter (using UnsafeCell for interior mutability)
     // Safe because GIL ensures single-threaded access within an interpreter
     #[cfg(not(Py_GIL_DISABLED))]
-    pub key_map: core::cell::UnsafeCell<KeyMap>,
+    pub key_map: core::cell::UnsafeCell<KeyCache>,
 
     // Pre-allocated buffer for yyjson parsing - avoids malloc/free per parse
     // Safe because GIL ensures single-threaded access
@@ -183,6 +173,10 @@ unsafe fn look_up_datetime(
 
 impl InterpreterState {
     /// Initialize a new interpreter state for the current interpreter.
+    ///
+    /// This is a cold path - only called once per interpreter.
+    /// Built-in types are now accessed via direct CPython globals,
+    /// so we only initialize per-interpreter specific data here.
     #[cold]
     #[cfg_attr(feature = "optimize", optimize(size))]
     pub(crate) unsafe fn new() -> Self {
@@ -192,21 +186,8 @@ impl InterpreterState {
             let mut state = InterpreterState {
                 default: null_mut(),
                 option: null_mut(),
-                none: Py_None(),
-                true_: Py_True(),
-                false_: Py_False(),
                 empty_unicode: PyUnicode_New(0, 255),
-                bytes_type: &raw mut PyBytes_Type,
-                bytearray_type: &raw mut PyByteArray_Type,
-                memoryview_type: &raw mut PyMemoryView_Type,
-                str_type: &raw mut PyUnicode_Type,
-                int_type: &raw mut PyLong_Type,
-                bool_type: &raw mut PyBool_Type,
-                none_type: null_mut(),
-                float_type: &raw mut PyFloat_Type,
-                list_type: &raw mut PyList_Type,
-                dict_type: &raw mut PyDict_Type,
-                tuple_type: &raw mut PyTuple_Type,
+                // Dynamic types - looked up from external modules
                 datetime_type: null_mut(),
                 date_type: null_mut(),
                 time_type: null_mut(),
@@ -215,6 +196,7 @@ impl InterpreterState {
                 field_type: null_mut(),
                 fragment_type: null_mut(),
                 zoneinfo_type: null_mut(),
+                // Interned strings
                 utcoffset_method_str: null_mut(),
                 normalize_method_str: null_mut(),
                 convert_method_str: null_mut(),
@@ -228,15 +210,16 @@ impl InterpreterState {
                 descr_str: null_mut(),
                 value_str: null_mut(),
                 int_attr_str: null_mut(),
+                // Exceptions
                 json_encode_error: null_mut(),
                 json_decode_error: null_mut(),
+                // Caches
                 #[cfg(not(Py_GIL_DISABLED))]
-                key_map: core::cell::UnsafeCell::new(KeyMap::default()),
+                key_map: core::cell::UnsafeCell::new(KeyCache::new()),
                 parse_buffer: core::cell::UnsafeCell::new(ParseBuffer::new()),
             };
 
-            state.none_type = unsafe { (*state.none).ob_type };
-
+            // Look up types from external modules
             look_up_datetime(
                 &mut state.datetime_type,
                 &mut state.date_type,

@@ -1,34 +1,29 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 // Copyright ijl (2022-2025)
 
-#[cfg(not(Py_GIL_DISABLED))]
-use crate::deserialize::cache::CachedKey;
 use crate::str::PyStr;
-// NONE, TRUE, FALSE now accessed via typeref accessor functions
 use core::ptr::NonNull;
 
+/// Get a cached unicode key for dictionary keys.
+/// Uses a simple direct-mapped cache with FNV-1a hashing for maximum speed.
 #[cfg(not(Py_GIL_DISABLED))]
 #[inline(always)]
 pub(crate) fn get_unicode_key(
     key_str: &str,
     interpreter_state: *const crate::interpreter_state::InterpreterState,
 ) -> PyStr {
+    // Long keys (>64 bytes) - unlikely to repeat, skip cache
+    // Also keys > 255 bytes can't fit in u8 len field
     if key_str.len() > 64 {
         cold_path!();
-        PyStr::from_str_with_hash(key_str)
-    } else {
-        assume!(key_str.len() <= 64);
-        let hash = xxhash_rust::xxh3::xxh3_64(key_str.as_bytes());
-        unsafe {
-            debug_assert!(!interpreter_state.is_null());
-            let state = &*interpreter_state;
-            let key_map = &mut *state.key_map.get();
-            let entry = key_map.entry(&hash).or_insert_with(
-                || hash,
-                || CachedKey::new(PyStr::from_str_with_hash(key_str)),
-            );
-            entry.get()
-        }
+        return PyStr::from_str_with_hash(key_str);
+    }
+
+    // Fast path: direct cache lookup with FNV hash
+    assume!(key_str.len() <= 64);
+    unsafe {
+        let cache = &mut *(*interpreter_state).key_map.get();
+        cache.get_or_insert(key_str)
     }
 }
 
@@ -53,33 +48,20 @@ pub(crate) fn parse_f64(val: f64) -> NonNull<crate::ffi::PyObject> {
     nonnull!(ffi!(PyFloat_FromDouble(val)))
 }
 
-// State-aware parse functions - zero overhead when state is already available
+// Optimized parse functions using direct CPython globals
+// Zero overhead - no state parameter, no lookup
+
 #[inline(always)]
-pub(crate) fn parse_true_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
-) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).true_))
-    }
+pub(crate) fn parse_true() -> NonNull<crate::ffi::PyObject> {
+    unsafe { nonnull!(use_immortal!(crate::typeref::true_ptr())) }
 }
 
 #[inline(always)]
-pub(crate) fn parse_false_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
-) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).false_))
-    }
+pub(crate) fn parse_false() -> NonNull<crate::ffi::PyObject> {
+    unsafe { nonnull!(use_immortal!(crate::typeref::false_ptr())) }
 }
 
 #[inline(always)]
-pub(crate) fn parse_none_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
-) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).none))
-    }
+pub(crate) fn parse_none() -> NonNull<crate::ffi::PyObject> {
+    unsafe { nonnull!(use_immortal!(crate::typeref::none_ptr())) }
 }

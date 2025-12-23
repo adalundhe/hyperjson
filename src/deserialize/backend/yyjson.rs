@@ -7,8 +7,7 @@ use super::ffi::{
 };
 use crate::deserialize::DeserializeError;
 use crate::deserialize::pyobject::{
-    get_unicode_key, parse_f64, parse_false_with_state, parse_i64, parse_none_with_state,
-    parse_true_with_state, parse_u64,
+    get_unicode_key, parse_f64, parse_false, parse_i64, parse_none, parse_true, parse_u64,
 };
 use crate::str::PyStr;
 use crate::util::usize_to_isize;
@@ -25,7 +24,6 @@ const TAG_DOUBLE: u8 = 0b00010100;
 const TAG_FALSE: u8 = 0b00000011;
 const TAG_INT64: u8 = 0b00001100;
 const TAG_NULL: u8 = 0b00000010;
-const TAG_OBJECT: u8 = 0b00000111;
 const TAG_STRING: u8 = 0b00000101;
 const TAG_TRUE: u8 = 0b00001011;
 const TAG_UINT64: u8 = 0b00000100;
@@ -122,27 +120,19 @@ pub(crate) fn deserialize(
     let pyval = {
         if !unsafe_yyjson_is_ctn(val) {
             cold_path!();
-            match ElementType::from_tag(val) {
-                ElementType::String => parse_yy_string(val),
-                ElementType::Uint64 => parse_yy_u64(val),
-                ElementType::Int64 => parse_yy_i64(val),
-                ElementType::Double => parse_yy_f64(val),
-                ElementType::Null => parse_none_with_state(interpreter_state),
-                ElementType::True => parse_true_with_state(interpreter_state),
-                ElementType::False => parse_false_with_state(interpreter_state),
-                ElementType::Array | ElementType::Object => unreachable_unchecked!(),
-            }
+            // Direct tag dispatch - faster than ElementType enum match
+            parse_primitive(val)
         } else if is_yyjson_tag!(val, TAG_ARRAY) {
-            let pyval = nonnull!(ffi!(PyList_New(usize_to_isize(unsafe_yyjson_get_len(val)))));
-            if unsafe_yyjson_get_len(val) > 0 {
+            let len = unsafe_yyjson_get_len(val);
+            let pyval = nonnull!(ffi!(PyList_New(usize_to_isize(len))));
+            if len > 0 {
                 populate_yy_array(pyval.as_ptr(), val, interpreter_state);
             }
             pyval
         } else {
-            let pyval = nonnull!(ffi!(_PyDict_NewPresized(usize_to_isize(
-                unsafe_yyjson_get_len(val)
-            ))));
-            if unsafe_yyjson_get_len(val) > 0 {
+            let len = unsafe_yyjson_get_len(val);
+            let pyval = nonnull!(ffi!(_PyDict_NewPresized(usize_to_isize(len))));
+            if len > 0 {
                 populate_yy_object(pyval.as_ptr(), val, interpreter_state);
             }
             pyval
@@ -152,32 +142,28 @@ pub(crate) fn deserialize(
     Ok(pyval)
 }
 
-enum ElementType {
-    String,
-    Uint64,
-    Int64,
-    Double,
-    Null,
-    True,
-    False,
-    Array,
-    Object,
-}
-
-impl ElementType {
-    fn from_tag(elem: *mut yyjson_val) -> Self {
-        match unsafe { (*elem).tag as u8 } {
-            TAG_STRING => Self::String,
-            TAG_UINT64 => Self::Uint64,
-            TAG_INT64 => Self::Int64,
-            TAG_DOUBLE => Self::Double,
-            TAG_NULL => Self::Null,
-            TAG_TRUE => Self::True,
-            TAG_FALSE => Self::False,
-            TAG_ARRAY => Self::Array,
-            TAG_OBJECT => Self::Object,
-            _ => unreachable_unchecked!(),
-        }
+/// Fast primitive parsing with direct tag dispatch
+/// Inlined for performance - handles string/number/bool/null
+#[inline(always)]
+fn parse_primitive(val: *mut yyjson_val) -> NonNull<crate::ffi::PyObject> {
+    let tag = unsafe { (*val).tag as u8 };
+    // Order by frequency: strings are most common in JSON
+    if tag == TAG_STRING {
+        parse_yy_string(val)
+    } else if tag == TAG_UINT64 {
+        parse_yy_u64(val)
+    } else if tag == TAG_INT64 {
+        parse_yy_i64(val)
+    } else if tag == TAG_DOUBLE {
+        parse_yy_f64(val)
+    } else if tag == TAG_TRUE {
+        parse_true()
+    } else if tag == TAG_FALSE {
+        parse_false()
+    } else if tag == TAG_NULL {
+        parse_none()
+    } else {
+        unreachable_unchecked!()
     }
 }
 
@@ -231,33 +217,24 @@ fn populate_yy_array(
             if unsafe_yyjson_is_ctn(val) {
                 cold_path!();
                 next = unsafe_yyjson_get_next_container(val);
+                let nested_len = unsafe_yyjson_get_len(val);
                 if is_yyjson_tag!(val, TAG_ARRAY) {
-                    let pyval = ffi!(PyList_New(usize_to_isize(unsafe_yyjson_get_len(val))));
+                    let pyval = ffi!(PyList_New(usize_to_isize(nested_len)));
                     append_to_list!(dptr, pyval);
-                    if unsafe_yyjson_get_len(val) > 0 {
+                    if nested_len > 0 {
                         populate_yy_array(pyval, val, state);
                     }
                 } else {
-                    let pyval = ffi!(_PyDict_NewPresized(usize_to_isize(unsafe_yyjson_get_len(
-                        val
-                    ))));
+                    let pyval = ffi!(_PyDict_NewPresized(usize_to_isize(nested_len)));
                     append_to_list!(dptr, pyval);
-                    if unsafe_yyjson_get_len(val) > 0 {
+                    if nested_len > 0 {
                         populate_yy_object(pyval, val, state);
                     }
                 }
             } else {
                 next = unsafe_yyjson_get_next_non_container(val);
-                let pyval = match ElementType::from_tag(val) {
-                    ElementType::String => parse_yy_string(val),
-                    ElementType::Uint64 => parse_yy_u64(val),
-                    ElementType::Int64 => parse_yy_i64(val),
-                    ElementType::Double => parse_yy_f64(val),
-                    ElementType::Null => parse_none_with_state(state),
-                    ElementType::True => parse_true_with_state(state),
-                    ElementType::False => parse_false_with_state(state),
-                    ElementType::Array | ElementType::Object => unreachable_unchecked!(),
-                };
+                // Direct tag dispatch - faster than ElementType match
+                let pyval = parse_primitive(val);
                 append_to_list!(dptr, pyval.as_ptr());
             }
         }
@@ -288,34 +265,25 @@ fn populate_yy_object(
                 cold_path!();
                 next_key = unsafe_yyjson_get_next_container(val);
                 next_val = next_key.add(1);
+                let nested_len = unsafe_yyjson_get_len(val);
                 if is_yyjson_tag!(val, TAG_ARRAY) {
-                    let pyval = ffi!(PyList_New(usize_to_isize(unsafe_yyjson_get_len(val))));
+                    let pyval = ffi!(PyList_New(usize_to_isize(nested_len)));
                     pydict_setitem!(dict, pykey.as_ptr(), pyval);
-                    if unsafe_yyjson_get_len(val) > 0 {
+                    if nested_len > 0 {
                         populate_yy_array(pyval, val, state);
                     }
                 } else {
-                    let pyval = ffi!(_PyDict_NewPresized(usize_to_isize(unsafe_yyjson_get_len(
-                        val
-                    ))));
+                    let pyval = ffi!(_PyDict_NewPresized(usize_to_isize(nested_len)));
                     pydict_setitem!(dict, pykey.as_ptr(), pyval);
-                    if unsafe_yyjson_get_len(val) > 0 {
+                    if nested_len > 0 {
                         populate_yy_object(pyval, val, state);
                     }
                 }
             } else {
                 next_key = unsafe_yyjson_get_next_non_container(val);
                 next_val = next_key.add(1);
-                let pyval = match ElementType::from_tag(val) {
-                    ElementType::String => parse_yy_string(val),
-                    ElementType::Uint64 => parse_yy_u64(val),
-                    ElementType::Int64 => parse_yy_i64(val),
-                    ElementType::Double => parse_yy_f64(val),
-                    ElementType::Null => parse_none_with_state(state),
-                    ElementType::True => parse_true_with_state(state),
-                    ElementType::False => parse_false_with_state(state),
-                    ElementType::Array | ElementType::Object => unreachable_unchecked!(),
-                };
+                // Direct tag dispatch - faster than ElementType match
+                let pyval = parse_primitive(val);
                 pydict_setitem!(dict, pykey.as_ptr(), pyval.as_ptr());
             }
         }
