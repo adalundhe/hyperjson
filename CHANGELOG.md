@@ -143,7 +143,7 @@ least this version.
 
 ### Changed
 
-- Publish aarch64 manylinux_2_17 wheel for 3.13 to PyPI.
+- Publish aarch64 manylinux_2_34 wheel for 3.13 to PyPI.
 
 
 ## 3.10.9 - 2024-10-19
@@ -640,7 +640,7 @@ unsupported type.
 ### Changed
 
 - Improve performance of deserializing almost-empty documents.
-- Publish arm7l `manylinux_2_17` wheels to PyPI.
+- Publish arm7l `manylinux_2_34` wheels to PyPI.
 - Publish amd4 `musllinux_1_1` wheels to PyPI.
 
 ### Fixed

@@ -107,13 +107,13 @@ jobs:
           target: "${{ matrix.arch.target }}"
           rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
           rustup-components: rust-src
-          manylinux: manylinux_2_17
+          manylinux: manylinux_2_34
           args: --release --strip --out=dist --features=${{ matrix.arch.features }} -i ${{ matrix.python.interpreter }}
 
       - name: Test
         uses: addnab/docker-run-action@v3
         with:
-          image: "quay.io/pypa/manylinux_${{ matrix.arch.arch }}:latest"
+          image: "quay.io/pypa/manylinux_2_34_${{ matrix.arch.arch }}:latest"
           options: -v ${{ github.workspace }}:/io -w /io
           run: |
             ${{ matrix.python.interpreter }} -m venv venv
@@ -130,7 +130,7 @@ jobs:
         if: matrix.python.publish == true
         uses: actions/upload-artifact@v5
         with:
-          name: "hyperjson_manylinux_${{ matrix.arch.arch }}_${{ matrix.python.interpreter }}_manylinux_2_17"
+          name: "hyperjson_manylinux_${{ matrix.arch.arch }}_${{ matrix.python.interpreter }}_manylinux_2_34"
           path: dist
           overwrite: true
           retention-days: 1
@@ -142,12 +142,12 @@ jobs:
       fail-fast: false
       matrix:
         python: [
-          { interpreter: 'python3.14', abi: 'cp314-cp314', manylinux: 'manylinux_2_17', publish: true },
-          { interpreter: 'python3.13', abi: 'cp313-cp313', manylinux: 'manylinux_2_17', publish: true },
-          { interpreter: 'python3.12', abi: 'cp312-cp312', manylinux: 'manylinux_2_17', publish: true },
-          { interpreter: 'python3.11', abi: 'cp311-cp311', manylinux: 'manylinux_2_17', publish: true },
-          { interpreter: 'python3.10', abi: 'cp310-cp310', manylinux: 'manylinux_2_17', publish: true },
-          { interpreter: 'python3.9', abi: 'cp39-cp39', manylinux: 'manylinux_2_17', publish: true },
+          { interpreter: 'python3.14', abi: 'cp314-cp314', manylinux: 'manylinux_2_34', publish: true },
+          { interpreter: 'python3.13', abi: 'cp313-cp313', manylinux: 'manylinux_2_34', publish: true },
+          { interpreter: 'python3.12', abi: 'cp312-cp312', manylinux: 'manylinux_2_34', publish: true },
+          { interpreter: 'python3.11', abi: 'cp311-cp311', manylinux: 'manylinux_2_34', publish: true },
+          { interpreter: 'python3.10', abi: 'cp310-cp310', manylinux: 'manylinux_2_34', publish: true },
+          { interpreter: 'python3.9', abi: 'cp39-cp39', manylinux: 'manylinux_2_34', publish: true },
         ]
         target: [
           {
