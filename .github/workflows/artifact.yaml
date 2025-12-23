@@ -149,24 +149,24 @@ jobs:
         target: [
           {
             arch: 'armv7',
-            cflags: '-Os -fstrict-aliasing',
             features: '',
             rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C opt-level=s',
             target: 'armv7-unknown-linux-gnueabihf',
+            use_zig: true,
           },
           {
             arch: 'ppc64le',
-            cflags: '-Os -fstrict-aliasing',
             features: 'generic_simd',
             rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings',
             target: 'powerpc64le-unknown-linux-gnu',
+            use_zig: true,
           },
           {
             arch: 's390x',
-            cflags: '-Os -fstrict-aliasing -march=z10',
             features: '',
             rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings -C target-cpu=z10',
             target: 's390x-unknown-linux-gnu',
+            use_zig: false,
           },
         ]
     steps:
@@ -182,7 +182,8 @@ jobs:
         mkdir .cargo
         cp ci/config.toml .cargo/config.toml
 
-    - name: Build
+    - name: Build (with zig)
+      if: matrix.target.use_zig == true
       uses: PyO3/maturin-action@v1
       env:
         RUSTFLAGS: "${{ matrix.target.rustflags }}"
@@ -193,8 +194,24 @@ jobs:
         rustup-components: rust-src
         manylinux: "${{ matrix.python.manylinux }}"
         # Use zig as cross-compiler - handles C code (yyjson) automatically
-        # Python is installed via actions/setup-python, so no PYO3_CROSS_LIB_DIR needed
         args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }} --zig
+
+    - name: Build (with native cross-compiler)
+      if: matrix.target.use_zig == false
+      uses: PyO3/maturin-action@v1
+      env:
+        PYO3_CROSS_LIB_DIR: "/opt/python/${{ matrix.python.abi }}"
+        RUSTFLAGS: "${{ matrix.target.rustflags }}"
+        JEMALLOC_SYS_WITH_LG_PAGE: "16"
+      with:
+        target: "${{ matrix.target.target }}"
+        rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
+        rustup-components: rust-src
+        manylinux: "${{ matrix.python.manylinux }}"
+        # Install s390x cross-compiler inside the manylinux container
+        before-script-linux: |
+          dnf install -y gcc-s390x-linux-gnu gcc-c++-s390x-linux-gnu
+        args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }}
 
     - name: Store wheels
       if: matrix.python.publish == true
