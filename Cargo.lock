@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "hyperjson"
-version = "3.11.5"
+version = "0.1.0"
 dependencies = [
  "associative-cache",
  "bytecount",
