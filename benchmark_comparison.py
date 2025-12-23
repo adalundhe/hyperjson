@@ -364,29 +364,28 @@ def main():
             print(f"Error loading original orjson: {e}")
             print("Skipping original orjson benchmark")
         
-        # Switch to our version
+        # Switch to hyperjson (our modified version)
         print("\n" + "="*60)
-        print("Switching to MODIFIED orjson (subinterpreter-compatible)")
+        print("Switching to hyperjson (subinterpreter-compatible)")
         print("="*60)
-        subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "orjson"], 
-                      capture_output=True, check=False)
-        wheels = glob.glob("target/wheels/orjson*.whl")
+        # Find the hyperjson wheel file (our modified version)
+        wheels = glob.glob("target/wheels/hyperjson*.whl")
         if wheels:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+            subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                           capture_output=True, check=False)
         else:
             print("ERROR: Could not find wheel file. Building...")
             subprocess.run([sys.executable, "-m", "maturin", "build", "--release"], 
                           check=False)
-            wheels = glob.glob("target/wheels/orjson*.whl")
+            wheels = glob.glob("target/wheels/hyperjson*.whl")
             if wheels:
-                subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+                subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                               capture_output=True, check=False)
         
-        # Clear module cache and reimport
-        if 'orjson' in sys.modules:
-            del sys.modules['orjson']
-        import orjson as orjson_modified
+        # Clear module cache and import hyperjson
+        if 'hyperjson' in sys.modules:
+            del sys.modules['hyperjson']
+        import hyperjson as orjson_modified
         
         # Benchmark with random objects
         print("\nGenerating fresh random objects for each iteration...")
@@ -538,28 +537,26 @@ def main():
     print("\n" + "="*60)
     print("Switching to MODIFIED orjson (subinterpreter-compatible)")
     print("="*60)
-    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "orjson"], 
-                   capture_output=True, check=False)
-    # Find the wheel file
-    wheels = glob.glob("target/wheels/orjson*.whl")
+    # Find the hyperjson wheel file (our modified version)
+    wheels = glob.glob("target/wheels/hyperjson*.whl")
     if wheels:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+        subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                       capture_output=True, check=False)
     else:
         print("ERROR: Could not find wheel file. Building...")
         subprocess.run([sys.executable, "-m", "maturin", "build", "--release"], 
                       check=False)
-        wheels = glob.glob("target/wheels/orjson*.whl")
+        wheels = glob.glob("target/wheels/hyperjson*.whl")
         if wheels:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--user", wheels[0]], 
+            subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                           capture_output=True, check=False)
     
-    # Clear module cache and reimport
-    if 'orjson' in sys.modules:
-        del sys.modules['orjson']
-    import orjson as orjson_modified
+    # Clear module cache and import hyperjson
+    if 'hyperjson' in sys.modules:
+        del sys.modules['hyperjson']
+    import hyperjson as orjson_modified
     
-    result = benchmark_orjson(orjson_modified, "Modified orjson (subinterpreter-compatible)", 
+    result = benchmark_orjson(orjson_modified, "hyperjson (subinterpreter-compatible)", 
                              test_data, iterations)
     results.append(result)
     

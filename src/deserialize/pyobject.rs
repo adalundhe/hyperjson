@@ -53,33 +53,25 @@ pub(crate) fn parse_f64(val: f64) -> NonNull<crate::ffi::PyObject> {
     nonnull!(ffi!(PyFloat_FromDouble(val)))
 }
 
-// State-aware parse functions - zero overhead when state is already available
+// Optimized parse functions using direct CPython globals
+// No state lookup needed - these are CPython singletons
 #[inline(always)]
 pub(crate) fn parse_true_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
+    _state: *const crate::interpreter_state::InterpreterState,
 ) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).true_))
-    }
+    unsafe { nonnull!(use_immortal!(crate::typeref::true_ptr())) }
 }
 
 #[inline(always)]
 pub(crate) fn parse_false_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
+    _state: *const crate::interpreter_state::InterpreterState,
 ) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).false_))
-    }
+    unsafe { nonnull!(use_immortal!(crate::typeref::false_ptr())) }
 }
 
 #[inline(always)]
 pub(crate) fn parse_none_with_state(
-    state: *const crate::interpreter_state::InterpreterState,
+    _state: *const crate::interpreter_state::InterpreterState,
 ) -> NonNull<crate::ffi::PyObject> {
-    unsafe {
-        debug_assert!(!state.is_null());
-        nonnull!(use_immortal!((*state).none))
-    }
+    unsafe { nonnull!(use_immortal!(crate::typeref::none_ptr())) }
 }

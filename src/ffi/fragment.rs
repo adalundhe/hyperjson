@@ -73,7 +73,13 @@ pub(crate) unsafe extern "C" fn orjson_fragment_tp_new(
         } else {
             let contents = crate::ffi::PyTuple_GET_ITEM(args, 0);
             Py_INCREF(contents);
-            let obj = Box::new(Fragment {
+            // Use PyMem_Malloc for allocation to match PyMem_Free in dealloc
+            let ptr = crate::ffi::PyMem_Malloc(core::mem::size_of::<Fragment>());
+            if ptr.is_null() {
+                return null_mut();
+            }
+            let obj = ptr.cast::<Fragment>();
+            core::ptr::write(obj, Fragment {
                 #[cfg(Py_GIL_DISABLED)]
                 ob_tid: 0,
                 #[cfg(all(Py_GIL_DISABLED, Py_3_14))]
@@ -95,7 +101,7 @@ pub(crate) unsafe extern "C" fn orjson_fragment_tp_new(
                 ob_type: crate::typeref::get_fragment_type(),
                 contents: contents,
             });
-            Box::into_raw(obj).cast::<PyObject>()
+            obj.cast::<PyObject>()
         }
     }
 }

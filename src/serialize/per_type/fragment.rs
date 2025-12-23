@@ -32,7 +32,7 @@ impl Serialize for FragmentSerializer {
         unsafe {
             let fragment: *mut Fragment = self.ptr.cast::<Fragment>();
             let ob_type = ob_type!((*fragment).contents);
-            if core::ptr::eq(ob_type, crate::typeref::get_bytes_type()) {
+            if core::ptr::eq(ob_type, crate::typeref::bytes_type_ptr()) {
                 buffer = core::slice::from_raw_parts(
                     PyBytes_AS_STRING((*fragment).contents).cast::<u8>(),
                     isize_to_usize(PyBytes_GET_SIZE((*fragment).contents)),
