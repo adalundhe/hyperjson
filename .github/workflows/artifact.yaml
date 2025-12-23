@@ -151,13 +151,6 @@ jobs:
         ]
         target: [
           {
-            arch: 'i686',
-            cflags: '-Os -fstrict-aliasing',
-            features: '',
-            rustflags: '-Z unstable-options -C panic=immediate-abort -Z mir-opt-level=4 -D warnings',
-            target: 'i686-unknown-linux-gnu',
-          },
-          {
             arch: 'armv7',
             cflags: '-Os -fstrict-aliasing',
             features: '',
@@ -260,10 +253,6 @@ jobs:
             arch: x86_64
             platform: linux/amd64
             features: avx512,unwind
-          - target: i686-unknown-linux-musl
-            arch: i686
-            platform: linux/386
-            features: unwind
     steps:
     - uses: actions/checkout@v6
 
@@ -574,7 +563,6 @@ jobs:
         ]
         platform: [
           { arch: "x64", target: "x86_64-pc-windows-msvc", features: "avx512" },
-          { arch: "x86", target: "i686-pc-windows-msvc", features: "" },
         ]
     env:
       CFLAGS: "-O2"
