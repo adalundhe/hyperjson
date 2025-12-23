@@ -181,15 +181,15 @@ jobs:
       uses: PyO3/maturin-action@v1
       env:
         PYO3_CROSS_LIB_DIR: "/opt/python/${{ matrix.python.abi }}"
-        CFLAGS: "${{ matrix.target.cflags }}"
-        LDFLAGS: "-Wl,--as-needed"
         RUSTFLAGS: "${{ matrix.target.rustflags }}"
+        JEMALLOC_SYS_WITH_LG_PAGE: "16"
       with:
         target: "${{ matrix.target.target }}"
         rust-toolchain: "${{ env.RUST_TOOLCHAIN }}"
         rustup-components: rust-src
         manylinux: "${{ matrix.python.manylinux }}"
-        args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }}
+        # Use zig as cross-compiler - handles C code (yyjson) automatically
+        args: --release --strip --out=dist --features=${{ matrix.target.features }} -i ${{ matrix.python.interpreter }} --zig
 
     - name: Store wheels
       if: matrix.python.publish == true
