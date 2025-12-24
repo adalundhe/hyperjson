@@ -12,7 +12,8 @@ dist = sys.argv[1]
 pyproject_doc = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 pyproject_version = pyproject_doc["project"]["version"]
 
-prefix = f"hyperjson-{pyproject_version}"
+# PyPI package is hyperlight-hyperjson, but wheel filenames use underscores
+prefix = f"hyperlight_hyperjson-{pyproject_version}"
 
 abis = (
     "cp39-cp39",

@@ -44,7 +44,7 @@ jobs:
 
     - run: maturin sdist --out=dist
 
-    - run: python3 -m pip install --user dist/hyperjson*.tar.gz
+    - run: python3 -m pip install --user dist/hyperlight_hyperjson*.tar.gz
       env:
         CARGO_NET_OFFLINE: "true"
 
@@ -62,7 +62,7 @@ jobs:
     - name: Store sdist
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_sdist
+        name: hyperlight_hyperjson_sdist
         path: dist
         overwrite: true
         retention-days: 1
@@ -119,7 +119,7 @@ jobs:
             ${{ matrix.python.interpreter }} -m venv venv
             venv/bin/pip install -U pip wheel
             venv/bin/pip install -r test/requirements.txt -r integration/requirements.txt
-            venv/bin/pip install hyperjson --no-index --find-links dist/ --force-reinstall
+            venv/bin/pip install hyperlight-hyperjson --no-index --find-links dist/ --force-reinstall
             PYTHONMALLOC="debug" venv/bin/python -m pytest -v test
             venv/bin/python integration/thread
 
@@ -127,7 +127,7 @@ jobs:
         if: matrix.python.publish == true
         uses: actions/upload-artifact@v5
         with:
-          name: "hyperjson_manylinux_${{ matrix.arch.arch }}_${{ matrix.python.interpreter }}_manylinux_2_34"
+          name: "hyperlight_hyperjson_manylinux_${{ matrix.arch.arch }}_${{ matrix.python.interpreter }}_manylinux_2_34"
           path: dist
           overwrite: true
           retention-days: 1
@@ -188,7 +188,7 @@ jobs:
         if: matrix.python.publish == true
         uses: actions/upload-artifact@v5
         with:
-          name: "hyperjson_manylinux_s390x_${{ matrix.python.interpreter }}"
+          name: "hyperlight_hyperjson_manylinux_s390x_${{ matrix.python.interpreter }}"
           path: dist
           overwrite: true
           retention-days: 1
@@ -218,7 +218,7 @@ jobs:
           source .venv/bin/activate
 
           uv pip install -r test/requirements.txt
-          uv pip install dist/hyperjson*.whl
+          uv pip install dist/hyperlight_hyperjson*.whl
 
           pytest -v test
 
@@ -280,7 +280,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: "hyperjson_manylinux_${{ matrix.target.arch }}_${{ matrix.python.interpreter }}"
+        name: "hyperlight_hyperjson_manylinux_${{ matrix.target.arch }}_${{ matrix.python.interpreter }}"
         path: dist
         overwrite: true
         retention-days: 1
@@ -340,7 +340,7 @@ jobs:
 
           python${{ matrix.python.version }} -m venv venv
           venv/bin/pip install -U pip wheel
-          venv/bin/pip install hyperjson --no-index --find-links dist/ --force-reinstall
+          venv/bin/pip install hyperlight-hyperjson --no-index --find-links dist/ --force-reinstall
 
           # segfault on starting pytest after January 2025 on 3.11 and older; artifact works fine
           if [ ${{ matrix.python.pytest }} == '1' ]; then
@@ -352,7 +352,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_musllinux_${{ matrix.platform.arch }}_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_musllinux_${{ matrix.platform.arch }}_${{ matrix.python.version }}
         path: dist
         overwrite: true
         retention-days: 1
@@ -417,7 +417,7 @@ jobs:
           python${{ matrix.python.version }} -m venv venv
           venv/bin/pip install -U pip wheel
           venv/bin/pip install -r test/requirements.txt
-          venv/bin/pip install hyperjson --no-index --find-links dist/ --force-reinstall
+          venv/bin/pip install hyperlight-hyperjson --no-index --find-links dist/ --force-reinstall
           export PYTHONMALLOC="debug"
           venv/bin/python -m pytest -v test
 
@@ -425,7 +425,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_musllinux_${{ matrix.platform.arch }}_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_musllinux_${{ matrix.platform.arch }}_${{ matrix.python.version }}
         path: dist
         overwrite: true
         retention-days: 1
@@ -493,7 +493,7 @@ jobs:
           --features=generic_simd \
           --interpreter python${{ matrix.python.version }} \
           --target=aarch64-apple-darwin
-        uv pip install target/wheels/hyperjson*.whl
+        uv pip install target/wheels/hyperlight_hyperjson*.whl
 
     - run: pytest -v test
       env:
@@ -507,7 +507,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_macos_aarch64_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_macos_aarch64_${{ matrix.python.version }}
         path: target/wheels
         overwrite: true
         retention-days: 1
@@ -579,7 +579,7 @@ jobs:
           --features=generic_simd \
           --interpreter python${{ matrix.python.version }} \
           --target=universal2-apple-darwin
-        uv pip install target/wheels/hyperjson*.whl
+        uv pip install target/wheels/hyperlight_hyperjson*.whl
 
     - run: pytest -v test
       env:
@@ -593,7 +593,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_universal2_aarch64_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_universal2_aarch64_${{ matrix.python.version }}
         path: target/wheels
         overwrite: true
         retention-days: 1
@@ -654,7 +654,7 @@ jobs:
     - name: maturin
       run: |
         maturin.exe build --release --strip --features="${{ matrix.platform.features }}" --target="${{ matrix.platform.target }}"
-        python.exe -m pip install hyperjson --no-index --find-links target\wheels
+        python.exe -m pip install hyperlight-hyperjson --no-index --find-links target\wheels
 
     - run: python.exe -m pytest -s -rxX -v test
       env:
@@ -664,7 +664,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_windows_amd64_${{ matrix.platform.arch }}_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_windows_amd64_${{ matrix.platform.arch }}_${{ matrix.python.version }}
         path: target\wheels
         overwrite: true
         retention-days: 1
@@ -724,7 +724,7 @@ jobs:
     - name: maturin
       run: |
         maturin.exe build --release --strip --features=generic_simd --target="$env:TARGET"
-        python.exe -m pip install hyperjson --no-index --find-links target\wheels
+        python.exe -m pip install hyperlight-hyperjson --no-index --find-links target\wheels
 
     - run: python.exe -m pytest -s -rxX -v test
       env:
@@ -734,7 +734,7 @@ jobs:
       if: matrix.python.publish == true
       uses: actions/upload-artifact@v5
       with:
-        name: hyperjson_windows_aarch64_${{ matrix.python.version }}
+        name: hyperlight_hyperjson_windows_aarch64_${{ matrix.python.version }}
         path: target\wheels
         overwrite: true
         retention-days: 1
@@ -759,7 +759,7 @@ jobs:
     ]
     environment:
       name: PyPI
-      url: https://pypi.org/p/hyperjson
+      url: https://pypi.org/p/hyperlight-hyperjson
     permissions:
       id-token: write
     steps:
@@ -769,7 +769,7 @@ jobs:
         with:
           merge-multiple: true
           path: dist/
-          pattern: hyperjson_*
+          pattern: hyperlight_hyperjson_*
 
       - run: ls -1 dist/
 

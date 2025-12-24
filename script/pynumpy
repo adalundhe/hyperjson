@@ -11,7 +11,7 @@ import time
 from timeit import timeit
 
 import numpy as np
-import orjson
+import hyperjson
 import psutil
 from tabulate import tabulate
 
@@ -67,24 +67,24 @@ def default(__obj):
     raise TypeError
 
 
-headers = ("Library", "Latency (ms)", "RSS diff (MiB)", "vs. orjson")
+headers = ("Library", "Latency (ms)", "RSS diff (MiB)", "vs. hyperjson")
 
-LIBRARIES = ("orjson", "json")
+LIBRARIES = ("hyperjson", "json")
 
 ITERATIONS = 10
 
 
-def orjson_dumps():
-    return orjson.dumps(array, option=orjson.OPT_SERIALIZE_NUMPY)
+def hyperjson_dumps():
+    return hyperjson.dumps(array, option=hyperjson.OPT_SERIALIZE_NUMPY)
 
 
 def json_dumps():
     return json.dumps(array, default=default).encode("utf-8")
 
 
-output_in_mib = len(orjson_dumps()) / 1024 / 1024
+output_in_mib = len(hyperjson_dumps()) / 1024 / 1024
 
-print(f"{output_in_mib:,.1f}MiB {kind} output (orjson)")
+print(f"{output_in_mib:,.1f}MiB {kind} output (hyperjson)")
 
 gc.collect()
 mem_before = proc.memory_full_info().rss / 1024 / 1024
@@ -97,7 +97,7 @@ def per_iter_latency(val):
 
 
 def test_correctness(func):
-    return np.array_equal(array, np.array(orjson.loads(func()), dtype=dtype))
+    return np.array_equal(array, np.array(hyperjson.loads(func()), dtype=dtype))
 
 
 table = []
@@ -121,13 +121,13 @@ for lib_name in LIBRARIES:
         mem = 0  # todo
         correct = test_correctness(func)
 
-    if lib_name == "orjson":
-        compared_to_orjson = 1
-        orjson_latency = latency
+    if lib_name == "hyperjson":
+        compared_to_hyperjson = 1
+        hyperjson_latency = latency
     elif latency:
-        compared_to_orjson = latency / orjson_latency
+        compared_to_hyperjson = latency / hyperjson_latency
     else:
-        compared_to_orjson = None
+        compared_to_hyperjson = None
 
     if not correct:
         latency = None
@@ -140,7 +140,7 @@ for lib_name in LIBRARIES:
             lib_name,
             f"{latency:,.0f}" if latency else "",
             f"{mem_diff:,.0f}" if mem else "",
-            f"{compared_to_orjson:,.1f}" if (latency and compared_to_orjson) else "",
+            f"{compared_to_hyperjson:,.1f}" if (latency and compared_to_hyperjson) else "",
         ),
     )
 

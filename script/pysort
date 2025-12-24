@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from timeit import timeit
 
-import orjson
+import hyperjson
 from tabulate import tabulate
 
 if hasattr(os, "sched_setaffinity"):
@@ -25,14 +25,14 @@ def read_fixture_obj(filename):
         contents = lzma.decompress(path.read_bytes())
     else:
         contents = path.read_bytes()
-    return orjson.loads(contents)
+    return hyperjson.loads(contents)
 
 
 data = read_fixture_obj("twitter.json.xz")
 
-headers = ("Library", "unsorted (ms)", "sorted (ms)", "vs. orjson")
+headers = ("Library", "unsorted (ms)", "sorted (ms)", "vs. hyperjson")
 
-LIBRARIES = ("orjson", "json")
+LIBRARIES = ("hyperjson", "json")
 
 ITERATIONS = 500
 
@@ -54,32 +54,32 @@ for lib_name in LIBRARIES:
             lambda: json.dumps(data, sort_keys=True).encode("utf-8"),
             number=ITERATIONS,
         )
-    elif lib_name == "orjson":
-        time_unsorted = timeit(lambda: orjson.dumps(data), number=ITERATIONS)
+    elif lib_name == "hyperjson":
+        time_unsorted = timeit(lambda: hyperjson.dumps(data), number=ITERATIONS)
         time_sorted = timeit(
-            lambda: orjson.dumps(data, None, orjson.OPT_SORT_KEYS),
+            lambda: hyperjson.dumps(data, option=hyperjson.OPT_SORT_KEYS),
             number=ITERATIONS,
         )
-        orjson_time_sorted = per_iter_latency(time_sorted)
+        hyperjson_time_sorted = per_iter_latency(time_sorted)
     else:
         raise NotImplementedError
 
     time_unsorted = per_iter_latency(time_unsorted)
     time_sorted = per_iter_latency(time_sorted)
 
-    if lib_name == "orjson":
-        compared_to_orjson = 1
+    if lib_name == "hyperjson":
+        compared_to_hyperjson = 1
     elif time_unsorted:
-        compared_to_orjson = time_sorted / orjson_time_sorted
+        compared_to_hyperjson = time_sorted / hyperjson_time_sorted
     else:
-        compared_to_orjson = None
+        compared_to_hyperjson = None
 
     table.append(
         (
             lib_name,
             f"{time_unsorted:,.2f}" if time_unsorted else "",
             f"{time_sorted:,.2f}" if time_sorted else "",
-            f"{compared_to_orjson:,.1f}" if compared_to_orjson else "",
+            f"{compared_to_hyperjson:,.1f}" if compared_to_hyperjson else "",
         ),
     )
 

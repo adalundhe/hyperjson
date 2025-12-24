@@ -7,7 +7,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import orjson
+import hyperjson
 
 dirname = os.path.join(os.path.dirname(__file__), "../data")
 
@@ -27,4 +27,4 @@ def read_fixture(filename: str) -> bytes:
 
 @cache
 def read_fixture_obj(filename: str) -> Any:
-    return orjson.loads(read_fixture(filename))
+    return hyperjson.loads(read_fixture(filename))

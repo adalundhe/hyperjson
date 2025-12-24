@@ -8,7 +8,7 @@ import json
 import os
 from timeit import timeit
 
-import orjson
+import hyperjson
 from tabulate import tabulate
 
 if hasattr(os, "sched_setaffinity"):
@@ -35,9 +35,9 @@ objects_as_dataclass = [
 
 objects_as_dict = [dataclasses.asdict(each) for each in objects_as_dataclass]
 
-output_in_kib = len(orjson.dumps(objects_as_dict)) / 1024
+output_in_kib = len(hyperjson.dumps(objects_as_dict)) / 1024
 
-print(f"{output_in_kib:,.0f}KiB output (orjson)")
+print(f"{output_in_kib:,.0f}KiB output (hyperjson)")
 
 
 def default(__obj):
@@ -45,9 +45,9 @@ def default(__obj):
         return dataclasses.asdict(__obj)
 
 
-headers = ("Library", "dict (ms)", "dataclass (ms)", "vs. orjson")
+headers = ("Library", "dict (ms)", "dataclass (ms)", "vs. hyperjson")
 
-LIBRARIES = ("orjson", "json")
+LIBRARIES = ("hyperjson", "json")
 
 ITERATIONS = 100
 
@@ -69,36 +69,32 @@ for lib_name in LIBRARIES:
             lambda: json.dumps(objects_as_dataclass, default=default).encode("utf-8"),
             number=ITERATIONS,
         )
-    elif lib_name == "orjson":
-        as_dict = timeit(lambda: orjson.dumps(objects_as_dict), number=ITERATIONS)
+    elif lib_name == "hyperjson":
+        as_dict = timeit(lambda: hyperjson.dumps(objects_as_dict), number=ITERATIONS)
         as_dataclass = timeit(
-            lambda: orjson.dumps(
-                objects_as_dataclass,
-                None,
-                orjson.OPT_SERIALIZE_DATACLASS,
-            ),
+            lambda: hyperjson.dumps(objects_as_dataclass, option=hyperjson.OPT_SERIALIZE_DATACLASS),
             number=ITERATIONS,
         )
-        orjson_as_dataclass = per_iter_latency(as_dataclass)
+        hyperjson_as_dataclass = per_iter_latency(as_dataclass)
     else:
         raise NotImplementedError
 
     as_dict = per_iter_latency(as_dict)
     as_dataclass = per_iter_latency(as_dataclass)
 
-    if lib_name == "orjson":
-        compared_to_orjson = 1
+    if lib_name == "hyperjson":
+        compared_to_hyperjson = 1
     elif as_dataclass:
-        compared_to_orjson = int(as_dataclass / orjson_as_dataclass)
+        compared_to_hyperjson = int(as_dataclass / hyperjson_as_dataclass)
     else:
-        compared_to_orjson = None
+        compared_to_hyperjson = None
 
     table.append(
         (
             lib_name,
             f"{as_dict:,.2f}" if as_dict else "",
             f"{as_dataclass:,.2f}" if as_dataclass else "",
-            f"{compared_to_orjson:d}" if compared_to_orjson else "",
+            f"{compared_to_hyperjson:d}" if compared_to_hyperjson else "",
         ),
     )
 

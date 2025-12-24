@@ -6,13 +6,13 @@ import collections
 import io
 import os
 
-import orjson
+import hyperjson
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from tabulate import tabulate
 
-LIBRARIES = ("orjson", "json")
+LIBRARIES = ("hyperjson", "json")
 
 
 def aggregate():
@@ -20,7 +20,7 @@ def aggregate():
     res = collections.defaultdict(dict)
     for filename in os.listdir(benchmarks_dir):
         with open(os.path.join(benchmarks_dir, filename)) as fileh:
-            data = orjson.loads(fileh.read())
+            data = hyperjson.loads(fileh.read())
 
         for each in data["benchmarks"]:
             res[each["group"]][each["extra_info"]["lib"]] = {
@@ -72,10 +72,10 @@ def tab(obj):
                 },
             )
 
-        orjson_baseline = table[0][1]
+        hyperjson_baseline = table[0][1]
         for each in table:
             each[3] = (
-                "%.1f" % (each[1] / orjson_baseline)
+                "%.1f" % (each[1] / hyperjson_baseline)
                 if isinstance(each[1], float)
                 else None
             )

@@ -369,7 +369,7 @@ def main():
         print("Switching to hyperjson (subinterpreter-compatible)")
         print("="*60)
         # Find the hyperjson wheel file (our modified version)
-        wheels = glob.glob("target/wheels/hyperjson*.whl")
+        wheels = glob.glob("target/wheels/hyperlight_hyperjson*.whl")
         if wheels:
             subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                           capture_output=True, check=False)
@@ -377,7 +377,7 @@ def main():
             print("ERROR: Could not find wheel file. Building...")
             subprocess.run([sys.executable, "-m", "maturin", "build", "--release"], 
                           check=False)
-            wheels = glob.glob("target/wheels/hyperjson*.whl")
+            wheels = glob.glob("target/wheels/hyperlight_hyperjson*.whl")
             if wheels:
                 subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                               capture_output=True, check=False)
@@ -538,7 +538,7 @@ def main():
     print("Switching to MODIFIED orjson (subinterpreter-compatible)")
     print("="*60)
     # Find the hyperjson wheel file (our modified version)
-    wheels = glob.glob("target/wheels/hyperjson*.whl")
+    wheels = glob.glob("target/wheels/hyperlight_hyperjson*.whl")
     if wheels:
         subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                       capture_output=True, check=False)
@@ -546,7 +546,7 @@ def main():
         print("ERROR: Could not find wheel file. Building...")
         subprocess.run([sys.executable, "-m", "maturin", "build", "--release"], 
                       check=False)
-        wheels = glob.glob("target/wheels/hyperjson*.whl")
+        wheels = glob.glob("target/wheels/hyperlight_hyperjson*.whl")
         if wheels:
             subprocess.run([sys.executable, "-m", "pip", "install", "--force-reinstall", wheels[0]], 
                           capture_output=True, check=False)

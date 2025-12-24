@@ -10,7 +10,7 @@ import random
 from time import mktime
 from timeit import timeit
 
-import orjson
+import hyperjson
 from tabulate import tabulate
 
 if hasattr(os, "sched_setaffinity"):
@@ -27,18 +27,18 @@ for year in range(1920, 2020):
     random.shuffle(array)
     data_as_obj.append(dict(array))
 
-data_as_str = orjson.loads(orjson.dumps(data_as_obj, option=orjson.OPT_NON_STR_KEYS))
+data_as_str = hyperjson.loads(hyperjson.dumps(data_as_obj, option=hyperjson.OPT_NON_STR_KEYS))
 
 headers = ("Library", "str keys (ms)", "int keys (ms)", "int keys sorted (ms)")
 
-LIBRARIES = ("orjson", "json")
+LIBRARIES = ("hyperjson", "json")
 
 ITERATIONS = 500
 
 
-output_in_kib = len(orjson.dumps(data_as_str)) / 1024
+output_in_kib = len(hyperjson.dumps(data_as_str)) / 1024
 
-print(f"{output_in_kib:,.0f}KiB output (orjson)")
+print(f"{output_in_kib:,.0f}KiB output (hyperjson)")
 
 
 def per_iter_latency(val):
@@ -48,7 +48,7 @@ def per_iter_latency(val):
 
 
 def test_correctness(serialized):
-    return orjson.loads(serialized) == data_as_str
+    return orjso    n.loads(serialized) == data_as_str
 
 
 table = []
@@ -67,28 +67,28 @@ for lib_name in LIBRARIES:
             None  # TypeError: '<' not supported between instances of 'str' and 'int'
         )
         correct = False
-    elif lib_name == "orjson":
+    elif lib_name == "hyperjson":
         time_as_str = timeit(
-            lambda: orjson.dumps(data_as_str, None, orjson.OPT_NON_STR_KEYS),
+            lambda: hyperjson.dumps(data_as_str, option=hyperjson.OPT_NON_STR_KEYS),
             number=ITERATIONS,
         )
         time_as_obj = timeit(
-            lambda: orjson.dumps(data_as_obj, None, orjson.OPT_NON_STR_KEYS),
+            lambda: hyperjson.dumps(data_as_obj, option=hyperjson.OPT_NON_STR_KEYS),
             number=ITERATIONS,
         )
         time_as_obj_sorted = timeit(
-            lambda: orjson.dumps(
+            lambda: hyperjson.dumps(
                 data_as_obj,
                 None,
-                orjson.OPT_NON_STR_KEYS | orjson.OPT_SORT_KEYS,
+                hyperjson.OPT_NON_STR_KEYS | hyperjson.OPT_SORT_KEYS,
             ),
             number=ITERATIONS,
         )
         correct = test_correctness(
-            orjson.dumps(
+            hyperjson.dumps(
                 data_as_obj,
                 None,
-                orjson.OPT_NON_STR_KEYS | orjson.OPT_SORT_KEYS,
+                hyperjson.OPT_NON_STR_KEYS | hyperjson.OPT_SORT_KEYS,
             ),
         )
     else:

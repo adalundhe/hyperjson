@@ -9,16 +9,16 @@ import lzma
 import os
 from pathlib import Path
 
-import orjson
+import hyperjson
 from tabulate import tabulate
 
 dirname = os.path.join(os.path.dirname(__file__), "..", "data")
 
-LIBRARIES = ["orjson", "json"]
+LIBRARIES = ["hyperjson", "json"]
 
 
 LIBRARY_FUNC_MAP = {
-    "orjson": orjson.loads,
+    "hyperjson": hyperjson.loads,
     "json": json.loads,
 }
 
@@ -54,9 +54,9 @@ def test_passed(libname, fixture):
     passed = []
     loads = LIBRARY_FUNC_MAP[libname]
     try:
-        passed.append(loads(fixture) == orjson.loads(fixture))
+        passed.append(loads(fixture) == hyperjson.loads(fixture))
         passed.append(
-            loads(fixture.decode("utf-8")) == orjson.loads(fixture.decode("utf-8")),
+            loads(fixture.decode("utf-8")) == hyperjson.loads(fixture.decode("utf-8")),
         )
     except Exception:
         passed.append(False)
