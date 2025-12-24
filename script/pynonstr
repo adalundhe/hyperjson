@@ -10,8 +10,9 @@ import random
 from time import mktime
 from timeit import timeit
 
-import hyperjson
 from tabulate import tabulate
+
+import hyperjson
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})
@@ -27,7 +28,9 @@ for year in range(1920, 2020):
     random.shuffle(array)
     data_as_obj.append(dict(array))
 
-data_as_str = hyperjson.loads(hyperjson.dumps(data_as_obj, option=hyperjson.OPT_NON_STR_KEYS))
+data_as_str = hyperjson.loads(
+    hyperjson.dumps(data_as_obj, option=hyperjson.OPT_NON_STR_KEYS),
+)
 
 headers = ("Library", "str keys (ms)", "int keys (ms)", "int keys sorted (ms)")
 
@@ -48,7 +51,7 @@ def per_iter_latency(val):
 
 
 def test_correctness(serialized):
-    return orjso    n.loads(serialized) == data_as_str
+    return hyperjson.loads(serialized) == data_as_str
 
 
 table = []

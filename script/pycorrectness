@@ -9,8 +9,9 @@ import lzma
 import os
 from pathlib import Path
 
-import hyperjson
 from tabulate import tabulate
+
+import hyperjson
 
 dirname = os.path.join(os.path.dirname(__file__), "..", "data")
 

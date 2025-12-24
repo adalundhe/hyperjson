@@ -8,8 +8,9 @@ import json
 import os
 from timeit import timeit
 
-import hyperjson
 from tabulate import tabulate
+
+import hyperjson
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})
@@ -72,7 +73,10 @@ for lib_name in LIBRARIES:
     elif lib_name == "hyperjson":
         as_dict = timeit(lambda: hyperjson.dumps(objects_as_dict), number=ITERATIONS)
         as_dataclass = timeit(
-            lambda: hyperjson.dumps(objects_as_dataclass, option=hyperjson.OPT_SERIALIZE_DATACLASS),
+            lambda: hyperjson.dumps(
+                objects_as_dataclass,
+                option=hyperjson.OPT_SERIALIZE_DATACLASS,
+            ),
             number=ITERATIONS,
         )
         hyperjson_as_dataclass = per_iter_latency(as_dataclass)

@@ -11,9 +11,10 @@ import time
 from timeit import timeit
 
 import numpy as np
-import hyperjson
 import psutil
 from tabulate import tabulate
+
+import hyperjson
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})
@@ -140,7 +141,9 @@ for lib_name in LIBRARIES:
             lib_name,
             f"{latency:,.0f}" if latency else "",
             f"{mem_diff:,.0f}" if mem else "",
-            f"{compared_to_hyperjson:,.1f}" if (latency and compared_to_hyperjson) else "",
+            f"{compared_to_hyperjson:,.1f}"
+            if (latency and compared_to_hyperjson)
+            else "",
         ),
     )
 

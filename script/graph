@@ -6,11 +6,12 @@ import collections
 import io
 import os
 
-import hyperjson
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from tabulate import tabulate
+
+import hyperjson
 
 LIBRARIES = ("hyperjson", "json")
 

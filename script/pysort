@@ -9,8 +9,9 @@ import os
 from pathlib import Path
 from timeit import timeit
 
-import hyperjson
 from tabulate import tabulate
+
+import hyperjson
 
 if hasattr(os, "sched_setaffinity"):
     os.sched_setaffinity(os.getpid(), {0, 1})
