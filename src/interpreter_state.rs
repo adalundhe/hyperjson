@@ -296,49 +296,45 @@ pub(crate) unsafe fn get_or_init_state(module: *mut PyObject) -> *const Interpre
 }
 
 thread_local! {
-    // Cache just the state pointer for fastest access
+    // Cache interpreter ID and state pointer for fast access
+    // Using interpreter ID is much cheaper than PyImport_ImportModule
+    static CACHED_INTERP_ID: std::cell::Cell<i64> = const { std::cell::Cell::new(-1) };
     static CACHED_STATE: std::cell::Cell<*const InterpreterState> =
         const { std::cell::Cell::new(null_mut()) };
-    // Also cache the module pointer to keep it alive
-    static CACHED_MODULE: std::cell::Cell<*mut PyObject> =
-        const { std::cell::Cell::new(null_mut()) };
 }
 
-/// Get the current interpreter's state, using thread-local cache for performance.
+/// Get the current interpreter's state.
+///
+/// Uses thread-local caching with interpreter ID for fast detection.
+/// PyInterpreterState_GetID is much cheaper than PyImport_ImportModule.
 #[inline(always)]
 pub(crate) unsafe fn get_current_state() -> *const InterpreterState {
-    CACHED_STATE.with(|cell| {
-        let cached_state = cell.get();
-        if !cached_state.is_null() {
-            cached_state
-        } else {
-            unsafe { get_current_state_slow(cell) }
-        }
-    })
-}
-
-#[inline(never)]
-#[cold]
-unsafe fn get_current_state_slow(
-    cache_cell: &std::cell::Cell<*const InterpreterState>,
-) -> *const InterpreterState {
     unsafe {
+        // Get current interpreter ID - this is very fast
+        let interp = crate::ffi::PyInterpreterState_Get();
+        let interp_id = crate::ffi::PyInterpreterState_GetID(interp);
+
+        // Check if we're in the same interpreter as cached
+        let cached_id = CACHED_INTERP_ID.with(|cell| cell.get());
+        if cached_id == interp_id {
+            // Same interpreter - use cached state
+            return CACHED_STATE.with(|cell| cell.get());
+        }
+
+        // Different interpreter or first call - look up state via module import
         let module = PyImport_ImportModule(c"hyperjson".as_ptr());
         if module.is_null() {
             core::hint::unreachable_unchecked();
         }
         let state = get_or_init_state(module);
 
-        // Update cache - DECREF old module if switching interpreters
-        CACHED_MODULE.with(|mod_cell| {
-            let old_module = mod_cell.get();
-            if !old_module.is_null() && old_module != module {
-                Py_DECREF(old_module);
-            }
-            mod_cell.set(module);
-        });
+        // Update cache
+        CACHED_INTERP_ID.with(|cell| cell.set(interp_id));
+        CACHED_STATE.with(|cell| cell.set(state));
 
-        cache_cell.set(state);
+        // Decref the import reference since sys.modules holds the real reference
+        Py_DECREF(module);
+
         state
     }
 }
