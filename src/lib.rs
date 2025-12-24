@@ -242,10 +242,15 @@ pub(crate) unsafe extern "C" fn PyInit_hyperjson() -> *mut PyModuleDef {
                 #[allow(clippy::fn_to_numeric_cast_any, clippy::as_conversions)]
                 value: orjson_init_exec as *mut c_void,
             },
-            #[cfg(Py_3_12)]
+            #[cfg(all(Py_3_12, not(Py_3_13)))]
             PyModuleDef_Slot {
                 slot: crate::ffi::Py_mod_multiple_interpreters,
-                value: null_mut(), // Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED (0 as pointer)
+                value: crate::ffi::Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED,
+            },
+            #[cfg(Py_3_13)]
+            PyModuleDef_Slot {
+                slot: crate::ffi::Py_mod_multiple_interpreters,
+                value: crate::ffi::Py_MOD_PER_INTERPRETER_GIL_SUPPORTED,
             },
             #[cfg(Py_3_13)]
             PyModuleDef_Slot {

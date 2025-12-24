@@ -60,7 +60,8 @@ pub(crate) use pyo3_ffi::{PyModule_AddObject, PyObject_CallFunctionObjArgs};
 #[cfg(Py_3_12)]
 #[allow(unused_imports)]
 pub(crate) use pyo3_ffi::{
-    Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED, Py_mod_multiple_interpreters,
+    Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED, Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED,
+    Py_MOD_PER_INTERPRETER_GIL_SUPPORTED, Py_mod_multiple_interpreters,
     PyErr_GetRaisedException, PyErr_SetRaisedException, PyType_GetDict,
 };
 
