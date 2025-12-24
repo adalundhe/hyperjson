@@ -1,6 +1,6 @@
 [project]
 name = "hyperjson"
-version = "0.1.0"
+version = "0.1.3"
 repository = "https://github.com/ijl/orjson"
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy with subinterpreter support"
 requires-python = ">=3.9"
